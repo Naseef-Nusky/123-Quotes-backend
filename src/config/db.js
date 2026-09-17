@@ -1,9 +1,5 @@
-const mongoose = require('mongoose')
+const { PrismaClient } = require('@prisma/client')
 
-async function connectDB() {
-  const uri = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/123quotes'
-  await mongoose.connect(uri)
-  console.log('MongoDB connected')
-}
+const prisma = new PrismaClient()
 
-module.exports = connectDB
+module.exports = prisma

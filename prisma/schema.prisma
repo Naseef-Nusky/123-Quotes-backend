@@ -1,0 +1,472 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  CUSTOMER
+  PROFESSIONAL
+  ADMIN
+}
+
+enum UserStatus {
+  PENDING
+  ACTIVE
+  SUSPENDED
+  INACTIVE
+}
+
+enum RequestStatus {
+  DRAFT
+  SUBMITTED
+  MATCHED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum QuestionType {
+  SINGLE_CHOICE
+  MULTIPLE_CHOICE
+  DROPDOWN
+  TEXT
+  TEXTAREA
+}
+
+enum LeadStatus {
+  OPEN
+  MATCHED
+  PARTIALLY_UNLOCKED
+  CLOSED
+  CANCELLED
+}
+
+enum MatchStatus {
+  AVAILABLE
+  VIEWED
+  UNLOCKED
+  DECLINED
+  EXPIRED
+}
+
+enum PaymentStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  REFUNDED
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  PAST_DUE
+  CANCELLED
+  EXPIRED
+}
+
+enum TokenTxnType {
+  PURCHASE
+  UNLOCK
+  REFUND
+  ADJUSTMENT
+  BONUS
+}
+
+enum NotificationType {
+  ACCOUNT_VERIFICATION
+  PASSWORD_RESET
+  REQUEST_SUBMITTED
+  NEW_LEAD
+  LEAD_UNLOCKED
+  TOKEN_PURCHASE
+  LOW_TOKEN
+  SUBSCRIPTION
+  PAYMENT
+  STATUS_UPDATE
+  ADMIN
+}
+
+model User {
+  id                String     @id @default(uuid())
+  email             String     @unique
+  passwordHash      String
+  role              Role
+  status            UserStatus @default(PENDING)
+  emailVerified     Boolean    @default(false)
+  verificationToken String?
+  resetToken        String?
+  resetTokenExpiry  DateTime?
+  lastLoginAt       DateTime?
+  createdAt         DateTime   @default(now())
+  updatedAt         DateTime   @updatedAt
+
+  customer     CustomerProfile?
+  professional ProfessionalProfile?
+  notifications Notification[]
+  activityLogs  ActivityLog[]
+  payments      Payment[]
+}
+
+model CustomerProfile {
+  id        String   @id @default(uuid())
+  userId    String   @unique
+  firstName String
+  lastName  String
+  phone     String?
+  postcode  String?
+  address   String?
+  city      String?
+  country   String?  @default("UK")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user     User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  requests CustomerRequest[]
+}
+
+model ProfessionalProfile {
+  id              String     @id @default(uuid())
+  userId          String     @unique
+  companyName     String
+  contactName     String
+  phone           String?
+  website         String?
+  bio             String?
+  logoUrl         String?
+  postcode        String?
+  address         String?
+  city            String?
+  country         String?    @default("UK")
+  tokenBalance    Int        @default(0)
+  isAvailable     Boolean    @default(true)
+  subscriptionId  String?
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+
+  user           User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  services       ProfessionalService[]
+  serviceAreas   ServiceArea[]
+  matches        LeadMatch[]
+  unlocks        LeadUnlock[]
+  tokenTxns      TokenTransaction[]
+  subscription   Subscription?       @relation(fields: [subscriptionId], references: [id])
+}
+
+model Category {
+  id          String    @id @default(uuid())
+  name        String    @unique
+  slug        String    @unique
+  description String?
+  icon        String?
+  sortOrder   Int       @default(0)
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  services Service[]
+}
+
+model Service {
+  id              String   @id @default(uuid())
+  categoryId      String
+  name            String
+  slug            String   @unique
+  description     String?
+  shortDesc       String?
+  tokenCost       Int      @default(1)
+  isActive        Boolean  @default(true)
+  sortOrder       Int      @default(0)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  category     Category              @relation(fields: [categoryId], references: [id])
+  questions    Question[]
+  requests     CustomerRequest[]
+  professionals ProfessionalService[]
+  leads        Lead[]
+}
+
+model ProfessionalService {
+  id             String @id @default(uuid())
+  professionalId String
+  serviceId      String
+
+  professional ProfessionalProfile @relation(fields: [professionalId], references: [id], onDelete: Cascade)
+  service      Service             @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+
+  @@unique([professionalId, serviceId])
+}
+
+model ServiceArea {
+  id             String  @id @default(uuid())
+  professionalId String
+  postcode       String?
+  city           String?
+  radiusMiles    Int?
+  label          String?
+
+  professional ProfessionalProfile @relation(fields: [professionalId], references: [id], onDelete: Cascade)
+}
+
+model Question {
+  id          String       @id @default(uuid())
+  serviceId   String
+  label       String
+  helpText    String?
+  type        QuestionType
+  isRequired  Boolean      @default(true)
+  sortOrder   Int          @default(0)
+  isActive    Boolean      @default(true)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  service      Service          @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  options      AnswerOption[]
+  branchesFrom QuestionBranch[] @relation("BranchSource")
+  branchesTo   QuestionBranch[] @relation("BranchTarget")
+  answers      RequestAnswer[]
+}
+
+model AnswerOption {
+  id         String @id @default(uuid())
+  questionId String
+  label      String
+  value      String
+  sortOrder  Int    @default(0)
+
+  question Question         @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  branches QuestionBranch[]
+}
+
+model QuestionBranch {
+  id               String  @id @default(uuid())
+  sourceQuestionId String
+  optionId         String?
+  targetQuestionId String
+  operator         String  @default("EQUALS")
+  value            String?
+
+  sourceQuestion Question      @relation("BranchSource", fields: [sourceQuestionId], references: [id], onDelete: Cascade)
+  targetQuestion Question      @relation("BranchTarget", fields: [targetQuestionId], references: [id], onDelete: Cascade)
+  option         AnswerOption? @relation(fields: [optionId], references: [id], onDelete: SetNull)
+}
+
+model CustomerRequest {
+  id           String        @id @default(uuid())
+  customerId   String
+  serviceId    String
+  status       RequestStatus @default(DRAFT)
+  title        String?
+  description  String?
+  postcode     String
+  city         String?
+  address      String?
+  urgency      String?
+  budgetRange  String?
+  submittedAt  DateTime?
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  customer CustomerProfile @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  service  Service         @relation(fields: [serviceId], references: [id])
+  answers  RequestAnswer[]
+  lead     Lead?
+}
+
+model RequestAnswer {
+  id         String @id @default(uuid())
+  requestId  String
+  questionId String
+  value      String
+
+  request  CustomerRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  question Question        @relation(fields: [questionId], references: [id])
+
+  @@unique([requestId, questionId])
+}
+
+model Lead {
+  id             String     @id @default(uuid())
+  requestId      String     @unique
+  serviceId      String
+  status         LeadStatus @default(OPEN)
+  summary        String?
+  postcode       String
+  city           String?
+  tokenCost      Int        @default(1)
+  matchedCount   Int        @default(0)
+  unlockedCount  Int        @default(0)
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+
+  request  CustomerRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  service  Service         @relation(fields: [serviceId], references: [id])
+  matches  LeadMatch[]
+  unlocks  LeadUnlock[]
+}
+
+model LeadMatch {
+  id             String      @id @default(uuid())
+  leadId         String
+  professionalId String
+  status         MatchStatus @default(AVAILABLE)
+  score          Int         @default(0)
+  matchedAt      DateTime    @default(now())
+  viewedAt       DateTime?
+  unlockedAt     DateTime?
+
+  lead         Lead                @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  professional ProfessionalProfile @relation(fields: [professionalId], references: [id], onDelete: Cascade)
+
+  @@unique([leadId, professionalId])
+}
+
+model LeadUnlock {
+  id             String   @id @default(uuid())
+  leadId         String
+  professionalId String
+  tokensSpent    Int
+  unlockedAt     DateTime @default(now())
+
+  lead         Lead                @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  professional ProfessionalProfile @relation(fields: [professionalId], references: [id], onDelete: Cascade)
+
+  @@unique([leadId, professionalId])
+}
+
+model TokenPackage {
+  id          String   @id @default(uuid())
+  name        String
+  description String?
+  tokens      Int
+  priceCents  Int
+  currency    String   @default("GBP")
+  isActive    Boolean  @default(true)
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  payments Payment[]
+}
+
+model TokenTransaction {
+  id             String       @id @default(uuid())
+  professionalId String
+  type           TokenTxnType
+  amount         Int
+  balanceAfter   Int
+  reference      String?
+  meta           Json?
+  createdAt      DateTime     @default(now())
+
+  professional ProfessionalProfile @relation(fields: [professionalId], references: [id], onDelete: Cascade)
+}
+
+model SubscriptionPlan {
+  id            String   @id @default(uuid())
+  name          String
+  description   String?
+  priceCents    Int
+  currency      String   @default("GBP")
+  interval      String   @default("month")
+  tokensPerCycle Int     @default(0)
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  subscriptions Subscription[]
+}
+
+model Subscription {
+  id                 String             @id @default(uuid())
+  planId             String
+  status             SubscriptionStatus @default(ACTIVE)
+  squareSubscriptionId String?
+  currentPeriodStart DateTime?
+  currentPeriodEnd   DateTime?
+  cancelledAt        DateTime?
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+
+  plan          SubscriptionPlan      @relation(fields: [planId], references: [id])
+  professionals ProfessionalProfile[]
+  payments      Payment[]
+}
+
+model Payment {
+  id              String        @id @default(uuid())
+  userId          String
+  packageId       String?
+  subscriptionId  String?
+  amountCents     Int
+  currency        String        @default("GBP")
+  status          PaymentStatus @default(PENDING)
+  provider        String        @default("square")
+  providerPaymentId String?
+  receiptUrl      String?
+  meta            Json?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  user         User          @relation(fields: [userId], references: [id])
+  package      TokenPackage? @relation(fields: [packageId], references: [id])
+  subscription Subscription? @relation(fields: [subscriptionId], references: [id])
+}
+
+model EmailTemplate {
+  id        String   @id @default(uuid())
+  key       String   @unique
+  subject   String
+  bodyHtml  String
+  bodyText  String?
+  isActive  Boolean  @default(true)
+  updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now())
+}
+
+model Notification {
+  id        String           @id @default(uuid())
+  userId    String
+  type      NotificationType
+  title     String
+  body      String
+  meta      Json?
+  isRead    Boolean          @default(false)
+  emailSent Boolean          @default(false)
+  createdAt DateTime         @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model ActivityLog {
+  id         String   @id @default(uuid())
+  userId     String?
+  action     String
+  entityType String?
+  entityId   String?
+  ip         String?
+  meta       Json?
+  createdAt  DateTime @default(now())
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+}
+
+model Setting {
+  id        String   @id @default(uuid())
+  key       String   @unique
+  value     Json
+  updatedAt DateTime @updatedAt
+}
+
+model PageContent {
+  id        String   @id @default(uuid())
+  slug      String   @unique
+  title     String
+  body      String
+  isPublished Boolean @default(true)
+  updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now())
+}

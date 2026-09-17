@@ -1,12 +1,17 @@
 const express = require('express')
-const { createPublic, listAll, update, remove } = require('../controllers/leadController')
-const { protect } = require('../middleware/auth')
+const {
+  professionalLeads,
+  unlock,
+  adminListLeads,
+  adminRematch,
+} = require('../controllers/leadController')
+const { protect, authorize } = require('../middleware/auth')
 
 const router = express.Router()
 
-router.post('/', createPublic)
-router.get('/', protect, listAll)
-router.put('/:id', protect, update)
-router.delete('/:id', protect, remove)
+router.get('/mine', protect, authorize('PROFESSIONAL'), professionalLeads)
+router.post('/:id/unlock', protect, authorize('PROFESSIONAL'), unlock)
+router.get('/admin/all', protect, authorize('ADMIN'), adminListLeads)
+router.post('/admin/:id/rematch', protect, authorize('ADMIN'), adminRematch)
 
 module.exports = router

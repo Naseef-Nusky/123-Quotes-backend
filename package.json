@@ -1,27 +1,43 @@
 {
   "name": "123-quotes-backend",
-  "version": "1.0.0",
-  "description": "Node Express API for 123 Quotes and Admin CRM",
+  "version": "2.0.0",
+  "description": "123 Quotes service marketplace API (Node + Express + PostgreSQL)",
   "main": "src/server.js",
   "scripts": {
     "start": "node src/server.js",
     "dev": "nodemon src/server.js",
-    "seed": "node src/seed.js"
+    "prisma:generate": "prisma generate",
+    "prisma:migrate": "prisma migrate dev",
+    "prisma:deploy": "prisma migrate deploy",
+    "seed": "node prisma/seed.js",
+    "db:setup": "prisma migrate dev --name init && node prisma/seed.js"
   },
-  "keywords": ["quotes", "crm", "express"],
-  "author": "",
+  "keywords": [
+    "quotes",
+    "marketplace",
+    "leads",
+    "crm"
+  ],
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
+    "@prisma/client": "6.16.1",
+    "@sendgrid/mail": "^8.1.6",
     "bcryptjs": "^3.0.3",
     "cors": "^2.8.6",
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
+    "express-validator": "^7.3.2",
     "jsonwebtoken": "^9.0.3",
-    "mongoose": "^9.10.1",
-    "morgan": "^1.12.1"
+    "morgan": "^1.12.1",
+    "square": "^46.0.0",
+    "uuid": "^14.0.2"
   },
   "devDependencies": {
-    "nodemon": "^3.1.14"
+    "nodemon": "^3.1.14",
+    "prisma": "6.16.1"
+  },
+  "prisma": {
+    "seed": "node prisma/seed.js"
   }
 }
