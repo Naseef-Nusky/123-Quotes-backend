@@ -2,6 +2,7 @@ require('dotenv').config()
 const express = require('express')
 const cors = require('cors')
 const morgan = require('morgan')
+const { connectDB } = require('./config/db')
 
 const authRoutes = require('./routes/authRoutes')
 const serviceRoutes = require('./routes/serviceRoutes')
@@ -10,6 +11,7 @@ const requestRoutes = require('./routes/requestRoutes')
 const leadRoutes = require('./routes/leadRoutes')
 const professionalRoutes = require('./routes/professionalRoutes')
 const adminRoutes = require('./routes/adminRoutes')
+const contentRoutes = require('./routes/contentRoutes')
 
 const app = express()
 const PORT = process.env.PORT || 5000
@@ -47,12 +49,23 @@ app.use('/api/requests', requestRoutes)
 app.use('/api/leads', leadRoutes)
 app.use('/api/professionals', professionalRoutes)
 app.use('/api/admin', adminRoutes)
+app.use('/api/content', contentRoutes)
 
 app.use((err, _req, res, _next) => {
   console.error(err)
   res.status(err.status || 500).json({ message: err.message || 'Internal server error' })
 })
 
-app.listen(PORT, () => {
-  console.log(`123 Quotes API running on http://localhost:${PORT}`)
-})
+async function start() {
+  try {
+    await connectDB()
+    app.listen(PORT, () => {
+      console.log(`123 Quotes API running on http://localhost:${PORT}`)
+    })
+  } catch {
+    console.error('Server not started because database is not connected.')
+    process.exit(1)
+  }
+}
+
+start()

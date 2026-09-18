@@ -5,23 +5,40 @@ const { PrismaClient } = require('@prisma/client')
 const prisma = new PrismaClient()
 
 async function seed() {
-  const adminEmail = process.env.ADMIN_EMAIL || 'admin@123quotes.com'
-  const adminPassword = process.env.ADMIN_PASSWORD || 'admin123'
+  const superEmail = process.env.SUPER_ADMIN_EMAIL || 'superadmin@123quotes.com'
+  const superPassword = process.env.SUPER_ADMIN_PASSWORD || 'superadmin123'
+  const superName = process.env.SUPER_ADMIN_NAME || 'Super Admin'
 
-  let admin = await prisma.user.findUnique({ where: { email: adminEmail } })
-  if (!admin) {
-    admin = await prisma.user.create({
+  let superAdmin = await prisma.user.findUnique({
+    where: { email: superEmail },
+    include: { customer: true },
+  })
+
+  if (!superAdmin) {
+    superAdmin = await prisma.user.create({
       data: {
-        email: adminEmail,
-        passwordHash: await bcrypt.hash(adminPassword, 10),
-        role: 'ADMIN',
+        email: superEmail,
+        passwordHash: await bcrypt.hash(superPassword, 10),
+        role: 'SUPER_ADMIN',
         status: 'ACTIVE',
         emailVerified: true,
+        customer: {
+          create: {
+            firstName: superName.split(' ')[0] || 'Super',
+            lastName: superName.split(' ').slice(1).join(' ') || 'Admin',
+          },
+        },
       },
     })
-    console.log('Admin created:', adminEmail)
+    console.log('Super admin created:', superEmail)
+  } else if (superAdmin.role !== 'SUPER_ADMIN') {
+    superAdmin = await prisma.user.update({
+      where: { id: superAdmin.id },
+      data: { role: 'SUPER_ADMIN', status: 'ACTIVE', emailVerified: true },
+    })
+    console.log('User promoted to super admin:', superEmail)
   } else {
-    console.log('Admin exists:', adminEmail)
+    console.log('Super admin exists:', superEmail)
   }
 
   const categories = [

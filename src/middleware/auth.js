@@ -35,11 +35,20 @@ async function protect(req, res, next) {
 
 function authorize(...roles) {
   return (req, res, next) => {
-    if (!req.user || !roles.includes(req.user.role)) {
-      return fail(res, 'Forbidden', 403)
-    }
+    if (!req.user) return fail(res, 'Forbidden', 403)
+
+    const userRole = req.user.role
+    const allowed =
+      roles.includes(userRole) ||
+      (userRole === 'SUPER_ADMIN' && roles.includes('ADMIN'))
+
+    if (!allowed) return fail(res, 'Forbidden', 403)
     return next()
   }
 }
 
-module.exports = { signToken, protect, authorize }
+function isStaff(role) {
+  return role === 'ADMIN' || role === 'SUPER_ADMIN'
+}
+
+module.exports = { signToken, protect, authorize, isStaff }

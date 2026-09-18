@@ -3,6 +3,9 @@ const {
   dashboard,
   listUsers,
   updateUserStatus,
+  createAdmin,
+  updateSystemUser,
+  deleteSystemUser,
   listPackagesAdmin,
   upsertPackage,
   listPayments,
@@ -22,6 +25,9 @@ router.use(protect, authorize('ADMIN'))
 
 router.get('/dashboard', dashboard)
 router.get('/users', listUsers)
+router.post('/users', createAdmin)
+router.put('/users/:id', updateSystemUser)
+router.delete('/users/:id', deleteSystemUser)
 router.patch('/users/:id/status', updateUserStatus)
 router.get('/packages', listPackagesAdmin)
 router.post('/packages', upsertPackage)
