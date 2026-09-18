@@ -59,8 +59,12 @@ app.use((err, _req, res, _next) => {
 async function start() {
   try {
     await connectDB()
-    app.listen(PORT, () => {
+    const server = app.listen(PORT, () => {
       console.log(`123 Quotes API running on http://localhost:${PORT}`)
+    })
+    server.on('error', (err) => {
+      console.error('Server listen error:', err.message)
+      process.exit(1)
     })
   } catch {
     console.error('Server not started because database is not connected.')

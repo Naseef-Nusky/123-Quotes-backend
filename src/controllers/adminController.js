@@ -240,7 +240,6 @@ const updateSystemUser = asyncHandler(async (req, res) => {
 
 const deleteSystemUser = asyncHandler(async (req, res) => {
   const { id } = req.params
-  if (req.user?.id === id) return fail(res, 'You cannot delete your own account', 400)
 
   const existing = await prisma.user.findUnique({ where: { id } })
   if (!existing) return fail(res, 'User not found', 404)
@@ -251,6 +250,8 @@ const deleteSystemUser = asyncHandler(async (req, res) => {
   if (existing.role === 'SUPER_ADMIN') {
     return fail(res, 'Super admin accounts cannot be removed', 403)
   }
+
+  if (req.user?.id === id) return fail(res, 'You cannot delete your own account', 400)
 
   const staffCount = await prisma.user.count({ where: { role: { in: STAFF_ROLES } } })
   if (staffCount <= 1) return fail(res, 'Cannot delete the last system user', 400)
