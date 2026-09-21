@@ -121,13 +121,25 @@ const adminListLeads = asyncHandler(async (_req, res) => {
   const leads = await prisma.lead.findMany({
     include: {
       service: true,
-      request: { include: { customer: true } },
+      request: {
+        include: {
+          customer: { include: { user: true } },
+          answers: { include: { question: true } },
+        },
+      },
       matches: { include: { professional: true } },
       unlocks: true,
     },
     orderBy: { createdAt: 'desc' },
   })
   return ok(res, { leads })
+})
+
+const adminDeleteLead = asyncHandler(async (req, res) => {
+  const lead = await prisma.lead.findUnique({ where: { id: req.params.id } })
+  if (!lead) return fail(res, 'Lead not found', 404)
+  await prisma.customerRequest.delete({ where: { id: lead.requestId } })
+  return ok(res, { deleted: true, id: req.params.id })
 })
 
 const adminRematch = asyncHandler(async (req, res) => {
@@ -139,5 +151,6 @@ module.exports = {
   professionalLeads,
   unlock,
   adminListLeads,
+  adminDeleteLead,
   adminRematch,
 }

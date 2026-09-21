@@ -6,6 +6,8 @@ const {
   createAdmin,
   updateSystemUser,
   deleteSystemUser,
+  updateProfessional,
+  deleteProfessional,
   listPackagesAdmin,
   upsertPackage,
   listPayments,
@@ -29,6 +31,8 @@ router.post('/users', createAdmin)
 router.put('/users/:id', updateSystemUser)
 router.delete('/users/:id', deleteSystemUser)
 router.patch('/users/:id/status', updateUserStatus)
+router.put('/professionals/:id', updateProfessional)
+router.delete('/professionals/:id', deleteProfessional)
 router.get('/packages', listPackagesAdmin)
 router.post('/packages', upsertPackage)
 router.put('/packages/:id', (req, res, next) => {

@@ -66,7 +66,12 @@ const listUsers = asyncHandler(async (req, res) => {
       createdAt: true,
       updatedAt: true,
       customer: true,
-      professional: true,
+      professional: {
+        include: {
+          services: { include: { service: true } },
+          serviceAreas: true,
+        },
+      },
     },
     orderBy: { createdAt: 'desc' },
   })
@@ -381,6 +386,90 @@ const upsertPage = asyncHandler(async (req, res) => {
   return ok(res, { page })
 })
 
+const updateProfessional = asyncHandler(async (req, res) => {
+  const { id } = req.params
+  const { email, password, status, contactName, companyName, phone, bio, type } = req.body
+
+  const existing = await prisma.user.findUnique({
+    where: { id },
+    include: { professional: { include: { services: { include: { service: true } } } } },
+  })
+  if (!existing) return fail(res, 'User not found', 404)
+  if (existing.role !== 'PROFESSIONAL' || !existing.professional) {
+    return fail(res, 'Not a professional account', 400)
+  }
+
+  if (email && email.toLowerCase() !== existing.email) {
+    const taken = await prisma.user.findUnique({ where: { email: email.toLowerCase() } })
+    if (taken) return fail(res, 'Email already in use', 409)
+  }
+
+  const userData = {}
+  if (email) userData.email = email.toLowerCase().trim()
+  if (status) userData.status = status
+  if (password) {
+    if (String(password).length < 6) return fail(res, 'password must be at least 6 characters')
+    userData.passwordHash = await bcrypt.hash(password, 10)
+  }
+
+  const profileData = {}
+  if (contactName != null) profileData.contactName = contactName
+  if (companyName != null) profileData.companyName = companyName
+  if (phone != null) profileData.phone = phone
+  if (bio != null) profileData.bio = bio
+
+  const user = await prisma.$transaction(async (tx) => {
+    if (Object.keys(userData).length) {
+      await tx.user.update({ where: { id }, data: userData })
+    }
+    if (Object.keys(profileData).length) {
+      await tx.professionalProfile.update({
+        where: { userId: id },
+        data: profileData,
+      })
+    }
+
+    if (type && String(type).trim()) {
+      const service = await tx.service.findFirst({
+        where: {
+          OR: [
+            { name: { equals: String(type).trim(), mode: 'insensitive' } },
+            { slug: { equals: String(type).trim().toLowerCase().replace(/\s+/g, '-'), mode: 'insensitive' } },
+          ],
+        },
+      })
+      if (service) {
+        await tx.professionalService.deleteMany({ where: { professionalId: existing.professional.id } })
+        await tx.professionalService.create({
+          data: { professionalId: existing.professional.id, serviceId: service.id },
+        })
+      }
+    }
+
+    return tx.user.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        email: true,
+        role: true,
+        status: true,
+        createdAt: true,
+        professional: { include: { services: { include: { service: true } } } },
+      },
+    })
+  })
+
+  return ok(res, { user })
+})
+
+const deleteProfessional = asyncHandler(async (req, res) => {
+  const existing = await prisma.user.findUnique({ where: { id: req.params.id } })
+  if (!existing) return fail(res, 'User not found', 404)
+  if (existing.role !== 'PROFESSIONAL') return fail(res, 'Not a professional account', 400)
+  await prisma.user.delete({ where: { id: req.params.id } })
+  return ok(res, { deleted: true, id: req.params.id })
+})
+
 module.exports = {
   dashboard,
   listUsers,
@@ -388,6 +477,8 @@ module.exports = {
   createAdmin,
   updateSystemUser,
   deleteSystemUser,
+  updateProfessional,
+  deleteProfessional,
   listPackagesAdmin,
   upsertPackage,
   listPayments,

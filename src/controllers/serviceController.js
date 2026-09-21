@@ -16,7 +16,14 @@ const listServices = asyncHandler(async (req, res) => {
   if (req.query.category) where.category = { slug: req.query.category }
   const services = await prisma.service.findMany({
     where,
-    include: { category: true },
+    include: {
+      category: true,
+      questions: {
+        where: { isActive: true },
+        orderBy: { sortOrder: 'asc' },
+        include: { options: { orderBy: { sortOrder: 'asc' } } },
+      },
+    },
     orderBy: { sortOrder: 'asc' },
   })
   return ok(res, { services })

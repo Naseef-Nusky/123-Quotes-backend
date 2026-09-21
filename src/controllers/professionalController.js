@@ -153,15 +153,24 @@ const publicProfile = asyncHandler(async (req, res) => {
       id: true,
       companyName: true,
       contactName: true,
+      phone: true,
       bio: true,
       city: true,
+      postcode: true,
       website: true,
       services: { include: { service: true } },
       serviceAreas: true,
+      user: { select: { email: true, status: true } },
     },
   })
   if (!professional) return fail(res, 'Professional not found', 404)
-  return ok(res, { professional })
+  return ok(res, {
+    professional: {
+      ...professional,
+      email: professional.user?.email,
+      user: undefined,
+    },
+  })
 })
 
 const adminAdjustTokens = asyncHandler(async (req, res) => {

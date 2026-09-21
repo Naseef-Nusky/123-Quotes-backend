@@ -1,6 +1,7 @@
 require('dotenv').config()
 const bcrypt = require('bcryptjs')
 const { PrismaClient } = require('@prisma/client')
+const { seedDemoData } = require('./seedDemoData')
 
 const prisma = new PrismaClient()
 
@@ -184,19 +185,6 @@ async function seed() {
     }
   }
 
-  const packages = [
-    { name: 'Starter', tokens: 10, priceCents: 2500, description: '10 tokens to unlock leads', sortOrder: 1 },
-    { name: 'Growth', tokens: 30, priceCents: 6500, description: '30 tokens – best for active pros', sortOrder: 2 },
-    { name: 'Pro', tokens: 75, priceCents: 14000, description: '75 tokens with best value', sortOrder: 3 },
-  ]
-
-  for (const pkg of packages) {
-    const existing = await prisma.tokenPackage.findFirst({ where: { name: pkg.name } })
-    if (!existing) {
-      await prisma.tokenPackage.create({ data: { ...pkg, currency: 'GBP', isActive: true } })
-    }
-  }
-
   const templates = [
     {
       key: 'account_verification',
@@ -278,56 +266,7 @@ async function seed() {
     update: {},
   })
 
-  const demoCustomerEmail = 'customer@123quotes.com'
-  if (!(await prisma.user.findUnique({ where: { email: demoCustomerEmail } }))) {
-    await prisma.user.create({
-      data: {
-        email: demoCustomerEmail,
-        passwordHash: await bcrypt.hash('customer123', 10),
-        role: 'CUSTOMER',
-        status: 'ACTIVE',
-        emailVerified: true,
-        customer: {
-          create: {
-            firstName: 'Alex',
-            lastName: 'Customer',
-            phone: '07000000001',
-            postcode: 'SW1A 1AA',
-            city: 'London',
-          },
-        },
-      },
-    })
-    console.log('Demo customer: customer@123quotes.com / customer123')
-  }
-
-  const demoProEmail = 'pro@123quotes.com'
-  if (!(await prisma.user.findUnique({ where: { email: demoProEmail } }))) {
-    const boiler = await prisma.service.findUnique({ where: { slug: 'boiler-installation' } })
-    await prisma.user.create({
-      data: {
-        email: demoProEmail,
-        passwordHash: await bcrypt.hash('pro12345', 10),
-        role: 'PROFESSIONAL',
-        status: 'ACTIVE',
-        emailVerified: true,
-        professional: {
-          create: {
-            companyName: 'Prime Heat Engineers',
-            contactName: 'Sam Professional',
-            phone: '07000000002',
-            postcode: 'SW1A 1AA',
-            city: 'London',
-            tokenBalance: 20,
-            bio: 'Gas Safe registered engineers covering Central London.',
-            services: boiler ? { create: [{ serviceId: boiler.id }] } : undefined,
-            serviceAreas: { create: [{ postcode: 'SW1A', city: 'London', radiusMiles: 20 }] },
-          },
-        },
-      },
-    })
-    console.log('Demo professional: pro@123quotes.com / pro12345')
-  }
+  await seedDemoData(prisma, bcrypt)
 
   console.log('Seed complete')
 }
