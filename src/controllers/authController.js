@@ -66,18 +66,50 @@ const registerCustomer = asyncHandler(async (req, res) => {
 })
 
 const registerProfessional = asyncHandler(async (req, res) => {
-  const { email, password, companyName, contactName, phone, postcode, serviceIds = [] } = req.body
+  const {
+    email,
+    password,
+    companyName,
+    contactName,
+    phone,
+    postcode,
+    website,
+    bio,
+    serviceIds = [],
+    serviceSlug,
+    serviceName,
+    radiusMiles,
+    nationwide,
+  } = req.body
   if (!email || !password || !companyName || !contactName) {
     return fail(res, 'Missing required fields')
   }
+  if (String(password).length < 6) return fail(res, 'password must be at least 6 characters')
 
   const exists = await prisma.user.findUnique({ where: { email: email.toLowerCase() } })
   if (exists) return fail(res, 'Email already registered', 409)
 
+  let resolvedServiceIds = Array.isArray(serviceIds) ? [...serviceIds] : []
+  if (!resolvedServiceIds.length && (serviceSlug || serviceName)) {
+    const service = await prisma.service.findFirst({
+      where: {
+        OR: [
+          serviceSlug ? { slug: String(serviceSlug) } : undefined,
+          serviceName
+            ? { name: { equals: String(serviceName), mode: 'insensitive' } }
+            : undefined,
+        ].filter(Boolean),
+        isActive: true,
+      },
+    })
+    if (service) resolvedServiceIds = [service.id]
+  }
+
   const verificationToken = randomToken()
+  const areaPostcode = nationwide ? 'NATIONWIDE' : postcode || null
   const user = await prisma.user.create({
     data: {
-      email: email.toLowerCase(),
+      email: email.toLowerCase().trim(),
       passwordHash: await bcrypt.hash(password, 10),
       role: 'PROFESSIONAL',
       status: 'PENDING',
@@ -86,12 +118,25 @@ const registerProfessional = asyncHandler(async (req, res) => {
         create: {
           companyName,
           contactName,
-          phone,
-          postcode,
-          services: serviceIds.length
-            ? { create: serviceIds.map((serviceId) => ({ serviceId })) }
+          phone: phone || null,
+          postcode: postcode || null,
+          website: website || null,
+          bio: bio || null,
+          isAvailable: false,
+          services: resolvedServiceIds.length
+            ? { create: resolvedServiceIds.map((serviceId) => ({ serviceId })) }
             : undefined,
-          serviceAreas: postcode ? { create: [{ postcode }] } : undefined,
+          serviceAreas: areaPostcode
+            ? {
+                create: [
+                  {
+                    postcode: areaPostcode,
+                    radiusMiles: nationwide ? null : Number(radiusMiles) || 50,
+                    label: nationwide ? 'Nationwide' : undefined,
+                  },
+                ],
+              }
+            : undefined,
         },
       },
     },
@@ -110,7 +155,14 @@ const registerProfessional = asyncHandler(async (req, res) => {
   })
 
   await logActivity({ userId: user.id, action: 'professional.register', ip: req.ip })
-  return ok(res, { message: 'Registered. Please verify your email.', user: publicUser(user) }, 201)
+  return ok(
+    res,
+    {
+      message: 'Application submitted. Your account is pending admin review.',
+      user: publicUser(user),
+    },
+    201,
+  )
 })
 
 const login = asyncHandler(async (req, res) => {

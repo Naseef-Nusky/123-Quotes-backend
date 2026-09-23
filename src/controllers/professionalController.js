@@ -127,6 +127,14 @@ const publicDirectory = asyncHandler(async (req, res) => {
       { serviceAreas: { some: { city: { contains: req.query.city, mode: 'insensitive' } } } },
     ]
   }
+  if (req.query.postcode) {
+    const pc = String(req.query.postcode).trim()
+    where.OR = [
+      ...(where.OR || []),
+      { postcode: { contains: pc, mode: 'insensitive' } },
+      { serviceAreas: { some: { postcode: { contains: pc, mode: 'insensitive' } } } },
+    ]
+  }
 
   const professionals = await prisma.professionalProfile.findMany({
     where,

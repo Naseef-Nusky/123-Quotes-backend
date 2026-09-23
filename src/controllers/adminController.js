@@ -79,24 +79,43 @@ const listUsers = asyncHandler(async (req, res) => {
 })
 
 const updateUserStatus = asyncHandler(async (req, res) => {
-  const existing = await prisma.user.findUnique({ where: { id: req.params.id } })
+  const existing = await prisma.user.findUnique({
+    where: { id: req.params.id },
+    include: { professional: true },
+  })
   if (!existing) return fail(res, 'User not found', 404)
   if (existing.role === 'SUPER_ADMIN') {
     return fail(res, 'Super admin status cannot be changed', 403)
   }
 
-  const user = await prisma.user.update({
-    where: { id: req.params.id },
-    data: { status: req.body.status },
-    select: {
-      id: true,
-      email: true,
-      role: true,
-      status: true,
-      emailVerified: true,
-      createdAt: true,
-    },
+  const nextStatus = req.body.status
+  const user = await prisma.$transaction(async (tx) => {
+    const updated = await tx.user.update({
+      where: { id: req.params.id },
+      data: {
+        status: nextStatus,
+        ...(nextStatus === 'ACTIVE' ? { emailVerified: true } : {}),
+      },
+      select: {
+        id: true,
+        email: true,
+        role: true,
+        status: true,
+        emailVerified: true,
+        createdAt: true,
+      },
+    })
+
+    if (existing.professional) {
+      await tx.professionalProfile.update({
+        where: { userId: existing.id },
+        data: { isAvailable: nextStatus === 'ACTIVE' },
+      })
+    }
+
+    return updated
   })
+
   return ok(res, { user })
 })
 
@@ -296,16 +315,12 @@ const upsertPackage = asyncHandler(async (req, res) => {
 
 const listPayments = asyncHandler(async (req, res) => {
   const type = String(req.query.type || '').toLowerCase()
-  const where = {}
+  const where = { provider: 'square' }
 
-  if (type === 'online') {
-    where.provider = { in: ['square', 'paypal', 'stripe', 'online'] }
-  } else if (type === 'manual') {
-    where.provider = { in: ['manual', 'offline', 'bank', 'cash', 'invoice'] }
-  } else if (type === 'purchases' || type === 'purchase') {
+  if (type === 'purchases' || type === 'purchase') {
     where.packageId = { not: null }
   }
-  // type === 'all' / 'recent' / empty → no filter (full ledger)
+  // type === 'square' / 'all' / 'recent' / 'online' → all Square payments
 
   const payments = await prisma.payment.findMany({
     where,
@@ -321,7 +336,7 @@ const listPayments = asyncHandler(async (req, res) => {
     orderBy: { createdAt: 'desc' },
     take: 200,
   })
-  return ok(res, { payments, type: type || 'all' })
+  return ok(res, { payments, type: type || 'square', provider: 'square' })
 })
 
 const listActivity = asyncHandler(async (_req, res) => {
