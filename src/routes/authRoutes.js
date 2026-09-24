@@ -1,6 +1,5 @@
 const express = require('express')
 const {
-  registerCustomer,
   registerProfessional,
   login,
   me,
@@ -12,7 +11,6 @@ const { protect } = require('../middleware/auth')
 
 const router = express.Router()
 
-router.post('/register/customer', registerCustomer)
 router.post('/register/professional', registerProfessional)
 router.post('/login', login)
 router.get('/me', protect, me)

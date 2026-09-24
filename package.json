@@ -11,6 +11,8 @@
     "prisma:migrate": "prisma migrate dev",
     "prisma:deploy": "prisma migrate deploy",
     "seed": "node prisma/seed.js",
+    "postcodes:import": "node scripts/importUkPostcodes.js",
+    "emails:sync": "node scripts/syncEmailTemplates.js",
     "db:setup": "prisma migrate dev --name init && node prisma/seed.js"
   },
   "keywords": [

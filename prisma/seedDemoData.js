@@ -595,31 +595,31 @@ async function seedDemoData(prisma, bcrypt) {
             title: 'Web Development',
             description:
               'Here at 123Quotes, you can find the best web developers. Start your search, receive free quotes right away!',
-            link: '/services/web-development',
+            link: '/web-developer',
             buttonText: 'Find More',
           },
           {
             id: 'ps-2',
-            title: 'Event Photography',
+            title: 'Photographers',
             description:
               '123Quotes provides quotes from top photographers! Please enquire today to receive free quotes straight away!',
-            link: '/services/event-photography',
+            link: '/wedding-photographers',
             buttonText: 'Find More',
           },
           {
             id: 'ps-3',
-            title: 'Boiler Installation',
+            title: 'Private Investigators',
             description:
-              'Get free quotes from Gas Safe engineers near you for boiler installation and replacement.',
-            link: '/services/boiler-installation',
+              'A private investigator near you isn’t far from reach. Find local private investigators here at 123Quotes! Enquire to receive free quotes!',
+            link: '/private-investigators',
             buttonText: 'Find More',
           },
           {
             id: 'ps-4',
-            title: 'End of Tenancy Cleaning',
+            title: 'Cleaning services',
             description:
-              'On 123Quotes, you can receive free quotes from great cleaners near you!',
-            link: '/services/end-of-tenancy-cleaning',
+              'On 123Quotes, you can receive free quotes from great cleaners near you! All you have to do is enquire today to get instant quotes!',
+            link: '/house-cleaning',
             buttonText: 'Find More',
           },
         ],

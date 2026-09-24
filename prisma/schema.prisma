@@ -471,3 +471,19 @@ model PageContent {
   updatedAt DateTime @updatedAt
   createdAt DateTime @default(now())
 }
+
+/** UK postal outcodes (e.g. SW1A, BN2) for lookup / autocomplete. */
+model UkOutcode {
+  id        String   @id @default(uuid())
+  outcode   String   @unique
+  town      String?
+  region    String?
+  ukRegion  String?
+  country   String?
+  latitude  Float?
+  longitude Float?
+  createdAt DateTime @default(now())
+
+  @@index([outcode])
+  @@index([town])
+}

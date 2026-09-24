@@ -26,45 +26,6 @@ function publicUser(user) {
   }
 }
 
-const registerCustomer = asyncHandler(async (req, res) => {
-  const { email, password, firstName, lastName, phone, postcode } = req.body
-  if (!email || !password || !firstName || !lastName) {
-    return fail(res, 'Missing required fields')
-  }
-
-  const exists = await prisma.user.findUnique({ where: { email: email.toLowerCase() } })
-  if (exists) return fail(res, 'Email already registered', 409)
-
-  const verificationToken = randomToken()
-  const user = await prisma.user.create({
-    data: {
-      email: email.toLowerCase(),
-      passwordHash: await bcrypt.hash(password, 10),
-      role: 'CUSTOMER',
-      status: 'PENDING',
-      verificationToken,
-      customer: {
-        create: { firstName, lastName, phone, postcode },
-      },
-    },
-    include: { customer: true },
-  })
-
-  const verifyUrl = `${process.env.APP_URL}/verify-email?token=${verificationToken}`
-  await sendEmail({
-    to: user.email,
-    userId: user.id,
-    templateKey: 'account_verification',
-    type: 'ACCOUNT_VERIFICATION',
-    title: 'Verify your email',
-    body: `Verify your account: ${verifyUrl}`,
-    vars: { name: firstName, verifyUrl },
-  })
-
-  await logActivity({ userId: user.id, action: 'customer.register', ip: req.ip })
-  return ok(res, { message: 'Registered. Please verify your email.', user: publicUser(user) }, 201)
-})
-
 const registerProfessional = asyncHandler(async (req, res) => {
   const {
     email,
@@ -229,25 +190,35 @@ const forgotPassword = asyncHandler(async (req, res) => {
 
 const resetPassword = asyncHandler(async (req, res) => {
   const { token, password } = req.body
+  if (!token || !password) return fail(res, 'token and password are required')
+  if (String(password).length < 6) return fail(res, 'password must be at least 6 characters')
+
   const user = await prisma.user.findFirst({
     where: { resetToken: token, resetTokenExpiry: { gt: new Date() } },
+    include: { customer: true, professional: true },
   })
   if (!user) return fail(res, 'Invalid or expired reset token')
 
-  await prisma.user.update({
+  const updated = await prisma.user.update({
     where: { id: user.id },
     data: {
       passwordHash: await bcrypt.hash(password, 10),
       resetToken: null,
       resetTokenExpiry: null,
+      emailVerified: true,
+      status: user.status === 'PENDING' ? 'ACTIVE' : user.status,
     },
+    include: { customer: true, professional: true },
   })
 
-  return ok(res, { message: 'Password updated' })
+  return ok(res, {
+    message: 'Password updated',
+    token: signToken(updated),
+    user: publicUser(updated),
+  })
 })
 
 module.exports = {
-  registerCustomer,
   registerProfessional,
   login,
   me,

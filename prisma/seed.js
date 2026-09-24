@@ -185,56 +185,12 @@ async function seed() {
     }
   }
 
-  const templates = [
-    {
-      key: 'account_verification',
-      subject: 'Verify your 123 Quotes account',
-      bodyHtml: '<p>Hi {{name}},</p><p>Please verify your email: <a href="{{verifyUrl}}">{{verifyUrl}}</a></p>',
-      bodyText: 'Verify: {{verifyUrl}}',
-    },
-    {
-      key: 'password_reset',
-      subject: 'Reset your 123 Quotes password',
-      bodyHtml: '<p>Reset your password: <a href="{{resetUrl}}">{{resetUrl}}</a></p>',
-      bodyText: 'Reset: {{resetUrl}}',
-    },
-    {
-      key: 'request_submitted',
-      subject: 'Your {{serviceName}} request was submitted',
-      bodyHtml: '<p>Your request for {{serviceName}} was submitted. Matched professionals: {{matchCount}}</p>',
-      bodyText: 'Request submitted for {{serviceName}}',
-    },
-    {
-      key: 'new_lead',
-      subject: 'New {{serviceName}} lead near {{postcode}}',
-      bodyHtml: '<p>A new lead is available for {{serviceName}} near {{postcode}}.</p><p>{{summary}}</p>',
-      bodyText: 'New lead: {{serviceName}} / {{postcode}}',
-    },
-    {
-      key: 'lead_unlocked',
-      subject: 'Lead unlocked – contact details ready',
-      bodyHtml: '<p>Customer: {{customerName}}<br/>Email: {{customerEmail}}<br/>Phone: {{customerPhone}}</p>',
-      bodyText: 'Unlocked: {{customerName}} {{customerEmail}}',
-    },
-    {
-      key: 'token_purchase',
-      subject: 'Token purchase confirmed',
-      bodyHtml: '<p>You purchased {{tokens}} tokens ({{packageName}}).</p>',
-      bodyText: 'Purchased {{tokens}} tokens',
-    },
-    {
-      key: 'low_token',
-      subject: 'Low token balance',
-      bodyHtml: '<p>Your balance is {{balance}} tokens. Top up to keep unlocking leads.</p>',
-      bodyText: 'Low balance: {{balance}}',
-    },
-  ]
-
-  for (const t of templates) {
+  const { EMAIL_TEMPLATES } = require('../src/emails/templates')
+  for (const t of EMAIL_TEMPLATES) {
     await prisma.emailTemplate.upsert({
       where: { key: t.key },
-      create: t,
-      update: { subject: t.subject, bodyHtml: t.bodyHtml, bodyText: t.bodyText },
+      create: { ...t, isActive: true },
+      update: { subject: t.subject, bodyHtml: t.bodyHtml, bodyText: t.bodyText, isActive: true },
     })
   }
 

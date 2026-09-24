@@ -8,20 +8,39 @@ if (process.env.SENDGRID_API_KEY) {
   sgMail.setApiKey(process.env.SENDGRID_API_KEY)
 }
 
+function assetBase() {
+  return (process.env.EMAIL_ASSET_BASE_URL || process.env.APP_URL || 'http://localhost:5173').replace(
+    /\/$/,
+    '',
+  )
+}
+
+function brandVars(extra = {}) {
+  const base = assetBase()
+  return {
+    logoUrl: process.env.EMAIL_LOGO_URL || `${base}/logo.png`,
+    appUrl: base,
+    loginUrl: `${base}/login`,
+    ...extra,
+  }
+}
+
 async function renderTemplate(key, vars = {}) {
   const template = await prisma.emailTemplate.findUnique({ where: { key } })
+  const merged = brandVars(vars)
+
   if (!template || !template.isActive) {
     return {
-      subject: vars.subject || '123 Quotes Notification',
-      html: vars.html || `<p>${vars.body || ''}</p>`,
-      text: vars.text || vars.body || '',
+      subject: merged.subject || '123 Quotes Notification',
+      html: merged.html || `<p>${merged.body || ''}</p>`,
+      text: merged.text || merged.body || '',
     }
   }
 
   const replace = (str) =>
-    Object.entries(vars).reduce(
+    Object.entries(merged).reduce(
       (acc, [k, v]) => acc.replaceAll(`{{${k}}}`, String(v ?? '')),
-      str,
+      str || '',
     )
 
   return {
@@ -48,8 +67,8 @@ async function sendEmail({ to, templateKey, vars, type, userId, title, body }) {
   }
 
   if (!enabled()) {
-    console.log(`[email:dev] to=${to} subject=${content.subject}`)
-    return { queued: false, mocked: true }
+    console.log(`[email:dev] to=${to} subject=${content.subject} logo=${brandVars().logoUrl}`)
+    return { queued: false, mocked: true, subject: content.subject, html: content.html }
   }
 
   await sgMail.send({
@@ -73,4 +92,4 @@ async function sendEmail({ to, templateKey, vars, type, userId, title, body }) {
   return { queued: true }
 }
 
-module.exports = { sendEmail, renderTemplate }
+module.exports = { sendEmail, renderTemplate, brandVars }

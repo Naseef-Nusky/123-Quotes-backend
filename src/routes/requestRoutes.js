@@ -3,6 +3,7 @@ const {
   createDraft,
   saveAnswers,
   submitRequest,
+  submitGuestRequest,
   myRequests,
   getRequest,
   adminListRequests,
@@ -12,6 +13,7 @@ const { protect, authorize } = require('../middleware/auth')
 
 const router = express.Router()
 
+router.post('/guest', submitGuestRequest)
 router.post('/', protect, authorize('CUSTOMER'), createDraft)
 router.get('/mine', protect, authorize('CUSTOMER'), myRequests)
 router.get('/admin/all', protect, authorize('ADMIN'), adminListRequests)
