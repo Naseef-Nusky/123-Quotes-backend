@@ -8,6 +8,10 @@ const {
   deleteSystemUser,
   updateProfessional,
   deleteProfessional,
+  createProfessional,
+  createCustomer,
+  updateCustomer,
+  deleteCustomer,
   listPackagesAdmin,
   upsertPackage,
   listPayments,
@@ -33,6 +37,10 @@ router.delete('/users/:id', deleteSystemUser)
 router.patch('/users/:id/status', updateUserStatus)
 router.put('/professionals/:id', updateProfessional)
 router.delete('/professionals/:id', deleteProfessional)
+router.post('/professionals', createProfessional)
+router.post('/customers', createCustomer)
+router.put('/customers/:id', updateCustomer)
+router.delete('/customers/:id', deleteCustomer)
 router.get('/packages', listPackagesAdmin)
 router.post('/packages', upsertPackage)
 router.put('/packages/:id', (req, res, next) => {

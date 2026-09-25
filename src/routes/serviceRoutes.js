@@ -6,6 +6,8 @@ const {
   adminListServices,
   adminUpsertCategory,
   adminUpsertService,
+  adminDeleteCategory,
+  adminDeleteService,
 } = require('../controllers/serviceController')
 const { protect, authorize } = require('../middleware/auth')
 
@@ -20,11 +22,13 @@ router.put('/manage/categories/:id', protect, authorize('ADMIN'), (req, res, nex
   req.body.id = req.params.id
   return adminUpsertCategory(req, res, next)
 })
+router.delete('/manage/categories/:id', protect, authorize('ADMIN'), adminDeleteCategory)
 router.post('/manage', protect, authorize('ADMIN'), adminUpsertService)
 router.put('/manage/:id', protect, authorize('ADMIN'), (req, res, next) => {
   req.body.id = req.params.id
   return adminUpsertService(req, res, next)
 })
+router.delete('/manage/:id', protect, authorize('ADMIN'), adminDeleteService)
 
 router.get('/:idOrSlug', getService)
 

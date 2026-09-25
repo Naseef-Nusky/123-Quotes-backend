@@ -106,6 +106,21 @@ const EMAIL_TEMPLATES = [
     bodyText: 'Reset your password: {{resetUrl}}',
   },
   {
+    key: 'login_link',
+    subject: 'Your 123Quotes login link',
+    bodyHtml: shell({
+      title: 'Log in to 123Quotes',
+      bodyRows: contentCell(`
+        ${h1('Log in to 123Quotes')}
+        ${p('Hi {{name}},')}
+        ${p('Click the button below to sign in to your account. This link expires in 30 minutes.')}
+        ${btn('loginLinkUrl', 'Log in')}
+        ${p('If you did not request this email, you can ignore it.')}
+      `),
+    }),
+    bodyText: 'Log in to 123Quotes: {{loginLinkUrl}}',
+  },
+  {
     key: 'new_lead',
     subject: 'New {{serviceName}} lead near {{postcode}}',
     bodyHtml: shell({

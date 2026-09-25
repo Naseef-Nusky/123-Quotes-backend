@@ -188,10 +188,84 @@ const forgotPassword = asyncHandler(async (req, res) => {
   return ok(res, { message: 'If that email exists, a reset link was sent' })
 })
 
+const requestLoginLink = asyncHandler(async (req, res) => {
+  const email = String(req.body.email || '').toLowerCase().trim()
+  if (!email) return fail(res, 'Email is required')
+
+  const user = await prisma.user.findUnique({
+    where: { email },
+    include: { customer: true, professional: true },
+  })
+
+  // Always return the same message to avoid email enumeration
+  const generic = { message: 'If that email exists, a login link was sent' }
+  if (!user) return ok(res, generic)
+  if (user.status === 'SUSPENDED') return ok(res, generic)
+
+  const loginToken = `login_${randomToken()}`
+  await prisma.user.update({
+    where: { id: user.id },
+    data: {
+      resetToken: loginToken,
+      resetTokenExpiry: new Date(Date.now() + 1000 * 60 * 30),
+    },
+  })
+
+  const loginLinkUrl = `${process.env.APP_URL}/login?token=${encodeURIComponent(loginToken)}`
+  const name =
+    [user.customer?.firstName, user.customer?.lastName].filter(Boolean).join(' ') ||
+    user.professional?.contactName ||
+    user.email.split('@')[0]
+
+  await sendEmail({
+    to: user.email,
+    userId: user.id,
+    templateKey: 'login_link',
+    type: 'PASSWORD_RESET',
+    title: 'Your login link',
+    body: `Log in to 123Quotes: ${loginLinkUrl}`,
+    vars: { name, loginLinkUrl },
+  })
+
+  return ok(res, generic)
+})
+
+const loginWithLink = asyncHandler(async (req, res) => {
+  const token = String(req.body.token || '')
+  if (!token || !token.startsWith('login_')) {
+    return fail(res, 'Invalid or expired login link', 400)
+  }
+
+  const user = await prisma.user.findFirst({
+    where: { resetToken: token, resetTokenExpiry: { gt: new Date() } },
+    include: { customer: true, professional: true },
+  })
+  if (!user) return fail(res, 'Invalid or expired login link', 400)
+  if (user.status === 'SUSPENDED') return fail(res, 'Account suspended', 403)
+
+  const updated = await prisma.user.update({
+    where: { id: user.id },
+    data: {
+      resetToken: null,
+      resetTokenExpiry: null,
+      lastLoginAt: new Date(),
+      emailVerified: true,
+      status: user.status === 'PENDING' ? 'ACTIVE' : user.status,
+    },
+    include: { customer: true, professional: true },
+  })
+
+  await logActivity({ userId: updated.id, action: 'auth.login_link', ip: req.ip })
+
+  return ok(res, { token: signToken(updated), user: publicUser(updated) })
+})
+
 const resetPassword = asyncHandler(async (req, res) => {
   const { token, password } = req.body
   if (!token || !password) return fail(res, 'token and password are required')
   if (String(password).length < 6) return fail(res, 'password must be at least 6 characters')
+  // Login-link tokens must not be used for password reset
+  if (String(token).startsWith('login_')) return fail(res, 'Invalid or expired reset token')
 
   const user = await prisma.user.findFirst({
     where: { resetToken: token, resetTokenExpiry: { gt: new Date() } },
@@ -224,6 +298,8 @@ module.exports = {
   me,
   verifyEmail,
   forgotPassword,
+  requestLoginLink,
+  loginWithLink,
   resetPassword,
   publicUser,
 }

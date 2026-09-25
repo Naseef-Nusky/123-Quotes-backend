@@ -52,11 +52,23 @@ const getService = asyncHandler(async (req, res) => {
 })
 
 const adminListServices = asyncHandler(async (_req, res) => {
-  const services = await prisma.service.findMany({
-    include: { category: true, _count: { select: { questions: true, requests: true } } },
-    orderBy: { sortOrder: 'asc' },
-  })
-  return ok(res, { services })
+  const [categories, services] = await Promise.all([
+    prisma.category.findMany({ orderBy: { sortOrder: 'asc' } }),
+    prisma.service.findMany({
+      where: { isActive: true },
+      include: {
+        category: true,
+        questions: {
+          where: { isActive: true },
+          orderBy: { sortOrder: 'asc' },
+          include: { options: { orderBy: { sortOrder: 'asc' } } },
+        },
+        _count: { select: { questions: true, requests: true } },
+      },
+      orderBy: { sortOrder: 'asc' },
+    }),
+  ])
+  return ok(res, { services, categories })
 })
 
 const adminUpsertCategory = asyncHandler(async (req, res) => {
@@ -102,6 +114,46 @@ const adminUpsertService = asyncHandler(async (req, res) => {
   return ok(res, { service }, id ? 200 : 201)
 })
 
+const adminDeleteCategory = asyncHandler(async (req, res) => {
+  const category = await prisma.category.findUnique({
+    where: { id: req.params.id },
+    include: { _count: { select: { services: true } } },
+  })
+  if (!category) return fail(res, 'Category not found', 404)
+
+  // Soft-delete category + its services
+  await prisma.$transaction([
+    prisma.service.updateMany({
+      where: { categoryId: category.id },
+      data: { isActive: false },
+    }),
+    prisma.category.update({
+      where: { id: category.id },
+      data: { isActive: false },
+    }),
+  ])
+
+  return ok(res, { deleted: true, id: category.id, soft: true })
+})
+
+const adminDeleteService = asyncHandler(async (req, res) => {
+  const service = await prisma.service.findUnique({ where: { id: req.params.id } })
+  if (!service) return fail(res, 'Service not found', 404)
+
+  await prisma.$transaction([
+    prisma.question.updateMany({
+      where: { serviceId: service.id },
+      data: { isActive: false },
+    }),
+    prisma.service.update({
+      where: { id: service.id },
+      data: { isActive: false },
+    }),
+  ])
+
+  return ok(res, { deleted: true, id: service.id, soft: true })
+})
+
 module.exports = {
   listCategories,
   listServices,
@@ -109,4 +161,6 @@ module.exports = {
   adminListServices,
   adminUpsertCategory,
   adminUpsertService,
+  adminDeleteCategory,
+  adminDeleteService,
 }

@@ -485,6 +485,170 @@ const deleteProfessional = asyncHandler(async (req, res) => {
   return ok(res, { deleted: true, id: req.params.id })
 })
 
+const updateCustomer = asyncHandler(async (req, res) => {
+  const { id } = req.params
+  const { email, password, firstName, lastName, phone, postcode, address, city, status } = req.body
+
+  const existing = await prisma.user.findUnique({
+    where: { id },
+    include: { customer: true },
+  })
+  if (!existing) return fail(res, 'User not found', 404)
+  if (existing.role !== 'CUSTOMER') return fail(res, 'Not a customer account', 400)
+
+  if (email && email.toLowerCase() !== existing.email) {
+    const taken = await prisma.user.findUnique({ where: { email: email.toLowerCase() } })
+    if (taken) return fail(res, 'Email already in use', 409)
+  }
+
+  const data = {}
+  if (email) data.email = email.toLowerCase().trim()
+  if (status) data.status = status
+  if (password) {
+    if (String(password).length < 6) return fail(res, 'password must be at least 6 characters')
+    data.passwordHash = await bcrypt.hash(password, 10)
+  }
+
+  const user = await prisma.$transaction(async (tx) => {
+    await tx.user.update({ where: { id }, data })
+    if (existing.customer) {
+      await tx.customerProfile.update({
+        where: { userId: id },
+        data: {
+          ...(firstName != null ? { firstName } : {}),
+          ...(lastName != null ? { lastName } : {}),
+          ...(phone != null ? { phone } : {}),
+          ...(postcode != null ? { postcode } : {}),
+          ...(address != null ? { address } : {}),
+          ...(city != null ? { city } : {}),
+        },
+      })
+    }
+    return tx.user.findUnique({
+      where: { id },
+      include: { customer: true },
+    })
+  })
+
+  return ok(res, { user })
+})
+
+const createCustomer = asyncHandler(async (req, res) => {
+  const { email, password, firstName, lastName, phone, postcode, address, city, status } = req.body
+  if (!email || !password || !firstName) {
+    return fail(res, 'email, password and firstName are required')
+  }
+  if (String(password).length < 6) return fail(res, 'password must be at least 6 characters')
+
+  const emailNorm = String(email).toLowerCase().trim()
+  const exists = await prisma.user.findUnique({ where: { email: emailNorm } })
+  if (exists) return fail(res, 'Email already in use', 409)
+
+  const user = await prisma.user.create({
+    data: {
+      email: emailNorm,
+      passwordHash: await bcrypt.hash(password, 10),
+      role: 'CUSTOMER',
+      status: status || 'ACTIVE',
+      emailVerified: true,
+      customer: {
+        create: {
+          firstName: String(firstName).trim(),
+          lastName: String(lastName || '').trim() || 'Customer',
+          phone: phone || null,
+          postcode: postcode || null,
+          address: address || null,
+          city: city || null,
+        },
+      },
+    },
+    include: { customer: true },
+  })
+
+  return ok(res, { user }, 201)
+})
+
+const createProfessional = asyncHandler(async (req, res) => {
+  const {
+    email,
+    password,
+    contactName,
+    companyName,
+    phone,
+    postcode,
+    bio,
+    website,
+    type,
+    status,
+  } = req.body
+
+  if (!email || !password || !contactName || !companyName) {
+    return fail(res, 'email, password, contactName and companyName are required')
+  }
+  if (String(password).length < 6) return fail(res, 'password must be at least 6 characters')
+
+  const emailNorm = String(email).toLowerCase().trim()
+  const exists = await prisma.user.findUnique({ where: { email: emailNorm } })
+  if (exists) return fail(res, 'Email already in use', 409)
+
+  let serviceId = null
+  if (type && String(type).trim()) {
+    const service = await prisma.service.findFirst({
+      where: {
+        OR: [
+          { name: { equals: String(type).trim(), mode: 'insensitive' } },
+          {
+            slug: {
+              equals: String(type).trim().toLowerCase().replace(/\s+/g, '-'),
+              mode: 'insensitive',
+            },
+          },
+        ],
+        isActive: true,
+      },
+    })
+    if (service) serviceId = service.id
+  }
+
+  const nextStatus = status || 'ACTIVE'
+  const user = await prisma.user.create({
+    data: {
+      email: emailNorm,
+      passwordHash: await bcrypt.hash(password, 10),
+      role: 'PROFESSIONAL',
+      status: nextStatus,
+      emailVerified: true,
+      professional: {
+        create: {
+          contactName: String(contactName).trim(),
+          companyName: String(companyName).trim(),
+          phone: phone || null,
+          postcode: postcode || null,
+          website: website || null,
+          bio: bio || null,
+          isAvailable: nextStatus === 'ACTIVE',
+          services: serviceId
+            ? { create: [{ serviceId }] }
+            : undefined,
+        },
+      },
+    },
+    include: {
+      professional: { include: { services: { include: { service: true } } } },
+    },
+  })
+
+  return ok(res, { user }, 201)
+})
+
+const deleteCustomer = asyncHandler(async (req, res) => {
+  const existing = await prisma.user.findUnique({ where: { id: req.params.id } })
+  if (!existing) return fail(res, 'User not found', 404)
+  if (existing.role !== 'CUSTOMER') return fail(res, 'Not a customer account', 400)
+  await prisma.user.delete({ where: { id: req.params.id } })
+  return ok(res, { deleted: true, id: req.params.id })
+})
+
 module.exports = {
   dashboard,
   listUsers,
@@ -494,6 +658,10 @@ module.exports = {
   deleteSystemUser,
   updateProfessional,
   deleteProfessional,
+  createProfessional,
+  createCustomer,
+  updateCustomer,
+  deleteCustomer,
   listPackagesAdmin,
   upsertPackage,
   listPayments,

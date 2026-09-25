@@ -142,6 +142,81 @@ const adminDeleteLead = asyncHandler(async (req, res) => {
   return ok(res, { deleted: true, id: req.params.id })
 })
 
+const adminUpdateLead = asyncHandler(async (req, res) => {
+  const lead = await prisma.lead.findUnique({
+    where: { id: req.params.id },
+    include: {
+      request: { include: { customer: { include: { user: true } } } },
+    },
+  })
+  if (!lead) return fail(res, 'Lead not found', 404)
+
+  const { firstName, lastName, phone, email, postcode, status, summary } = req.body
+  const customer = lead.request?.customer
+  const userId = customer?.userId
+
+  try {
+    await prisma.$transaction(async (tx) => {
+      if (customer) {
+        await tx.customerProfile.update({
+          where: { id: customer.id },
+          data: {
+            ...(firstName != null ? { firstName } : {}),
+            ...(lastName != null ? { lastName } : {}),
+            ...(phone != null ? { phone } : {}),
+            ...(postcode != null ? { postcode } : {}),
+          },
+        })
+      }
+      if (userId && email) {
+        const nextEmail = String(email).toLowerCase().trim()
+        if (nextEmail !== customer.user?.email) {
+          const taken = await tx.user.findUnique({ where: { email: nextEmail } })
+          if (taken) {
+            const err = new Error('Email already in use')
+            err.status = 409
+            throw err
+          }
+          await tx.user.update({ where: { id: userId }, data: { email: nextEmail } })
+        }
+      }
+      await tx.lead.update({
+        where: { id: lead.id },
+        data: {
+          ...(postcode != null ? { postcode } : {}),
+          ...(status ? { status } : {}),
+          ...(summary != null ? { summary } : {}),
+        },
+      })
+      if (postcode != null && lead.requestId) {
+        await tx.customerRequest.update({
+          where: { id: lead.requestId },
+          data: { postcode },
+        })
+      }
+    })
+  } catch (err) {
+    return fail(res, err.message || 'Update failed', err.status || 400)
+  }
+
+  const updated = await prisma.lead.findUnique({
+    where: { id: lead.id },
+    include: {
+      service: true,
+      request: {
+        include: {
+          customer: { include: { user: true } },
+          answers: { include: { question: true } },
+        },
+      },
+      matches: { include: { professional: true } },
+      unlocks: true,
+    },
+  })
+
+  return ok(res, { lead: updated })
+})
+
 const adminRematch = asyncHandler(async (req, res) => {
   const matches = await matchProfessionalsForLead(req.params.id)
   return ok(res, { matchCount: matches.length, matches })
@@ -152,5 +227,6 @@ module.exports = {
   unlock,
   adminListLeads,
   adminDeleteLead,
+  adminUpdateLead,
   adminRematch,
 }

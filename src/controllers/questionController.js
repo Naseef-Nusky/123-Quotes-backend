@@ -92,8 +92,15 @@ const adminUpdateQuestion = asyncHandler(async (req, res) => {
 })
 
 const adminDeleteQuestion = asyncHandler(async (req, res) => {
-  await prisma.question.delete({ where: { id: req.params.id } })
-  return ok(res, { message: 'Question deleted' })
+  const existing = await prisma.question.findUnique({ where: { id: req.params.id } })
+  if (!existing) return fail(res, 'Question not found', 404)
+
+  // Soft-delete to preserve historical answers
+  await prisma.question.update({
+    where: { id: req.params.id },
+    data: { isActive: false },
+  })
+  return ok(res, { message: 'Question deleted', id: req.params.id, soft: true })
 })
 
 const adminCreateBranch = asyncHandler(async (req, res) => {
