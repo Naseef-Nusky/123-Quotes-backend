@@ -3,6 +3,7 @@ const {
   listCategories,
   listServices,
   getService,
+  adminListCategories,
   adminListServices,
   adminUpsertCategory,
   adminUpsertService,
@@ -17,6 +18,7 @@ router.get('/categories', listCategories)
 router.get('/', listServices)
 
 router.get('/manage/all', protect, authorize('ADMIN'), adminListServices)
+router.get('/manage/categories', protect, authorize('ADMIN'), adminListCategories)
 router.post('/manage/categories', protect, authorize('ADMIN'), adminUpsertCategory)
 router.put('/manage/categories/:id', protect, authorize('ADMIN'), (req, res, next) => {
   req.body.id = req.params.id

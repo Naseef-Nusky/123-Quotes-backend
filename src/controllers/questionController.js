@@ -15,8 +15,11 @@ const getQuestionnaire = asyncHandler(async (req, res) => {
 
 const adminListQuestions = asyncHandler(async (req, res) => {
   const questions = await prisma.question.findMany({
-    where: req.query.serviceId ? { serviceId: req.query.serviceId } : undefined,
-    include: { options: true, branchesFrom: true, service: true },
+    where: {
+      ...(req.query.serviceId ? { serviceId: String(req.query.serviceId) } : {}),
+      isActive: true,
+    },
+    include: { options: { orderBy: { sortOrder: 'asc' } } },
     orderBy: [{ serviceId: 'asc' }, { sortOrder: 'asc' }],
   })
   return ok(res, { questions })

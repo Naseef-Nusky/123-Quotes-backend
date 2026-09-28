@@ -6,6 +6,7 @@ const {
   submitGuestRequest,
   myRequests,
   getRequest,
+  deleteRequest,
   adminListRequests,
   adminUpdateRequestStatus,
 } = require('../controllers/requestController')
@@ -19,6 +20,7 @@ router.get('/mine', protect, authorize('CUSTOMER'), myRequests)
 router.get('/admin/all', protect, authorize('ADMIN'), adminListRequests)
 router.patch('/admin/:id/status', protect, authorize('ADMIN'), adminUpdateRequestStatus)
 router.get('/:id', protect, getRequest)
+router.delete('/:id', protect, authorize('CUSTOMER'), deleteRequest)
 router.put('/:id/answers', protect, authorize('CUSTOMER'), saveAnswers)
 router.post('/:id/submit', protect, authorize('CUSTOMER'), submitRequest)
 

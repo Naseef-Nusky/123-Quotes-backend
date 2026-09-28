@@ -17,9 +17,14 @@ async function protect(req, res, next) {
     if (!token) return fail(res, 'Not authorized', 401)
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET)
+    const isStaffUser = decoded.role === 'ADMIN' || decoded.role === 'SUPER_ADMIN'
+
+    // Staff CRM calls don't need customer/professional joins (saves remote-DB latency)
     const user = await prisma.user.findUnique({
       where: { id: decoded.id },
-      include: { customer: true, professional: true },
+      ...(isStaffUser
+        ? {}
+        : { include: { customer: true, professional: true } }),
     })
 
     if (!user || user.status === 'SUSPENDED' || user.status === 'INACTIVE') {

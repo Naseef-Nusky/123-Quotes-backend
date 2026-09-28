@@ -90,9 +90,15 @@ enum NotificationType {
   ADMIN
 }
 
+enum ApplicationStatus {
+  PENDING
+  APPROVED
+  DECLINED
+}
+
 model User {
   id                String     @id @default(uuid())
-  email             String     @unique
+  email             String
   passwordHash      String
   role              Role
   status            UserStatus @default(PENDING)
@@ -109,6 +115,11 @@ model User {
   notifications Notification[]
   activityLogs  ActivityLog[]
   payments      Payment[]
+  businessApplications BusinessApplication[]
+
+  /// Same email may exist once per role (customer + business = separate credentials)
+  @@unique([email, role])
+  @@index([email])
 }
 
 model CustomerProfile {
@@ -188,6 +199,36 @@ model Service {
   requests     CustomerRequest[]
   professionals ProfessionalService[]
   leads        Lead[]
+  applications BusinessApplication[]
+}
+
+model BusinessApplication {
+  id           String            @id @default(uuid())
+  userId       String?
+  email        String
+  contactName  String
+  companyName  String
+  phone        String?
+  website      String?
+  postcode     String?
+  radiusMiles  Int?
+  nationwide   Boolean           @default(false)
+  serviceName  String?
+  serviceId    String?
+  /// true when this is an extra signup on an already-registered email (not a profile overwrite)
+  isAdditional Boolean           @default(false)
+  status       ApplicationStatus @default(PENDING)
+  reviewedAt   DateTime?
+  reviewedById String?
+  notes        String?
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+
+  user    User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  service Service? @relation(fields: [serviceId], references: [id], onDelete: SetNull)
+
+  @@index([email])
+  @@index([status])
 }
 
 model ProfessionalService {

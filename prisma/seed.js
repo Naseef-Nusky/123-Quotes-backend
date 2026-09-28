@@ -10,10 +10,16 @@ async function seed() {
   const superPassword = process.env.SUPER_ADMIN_PASSWORD || 'superadmin123'
   const superName = process.env.SUPER_ADMIN_NAME || 'Super Admin'
 
-  let superAdmin = await prisma.user.findUnique({
-    where: { email: superEmail },
+  let superAdmin = await prisma.user.findFirst({
+    where: { email: superEmail, role: { in: ['SUPER_ADMIN', 'ADMIN'] } },
     include: { customer: true },
   })
+  if (!superAdmin) {
+    superAdmin = await prisma.user.findFirst({
+      where: { email: superEmail },
+      include: { customer: true },
+    })
+  }
 
   if (!superAdmin) {
     superAdmin = await prisma.user.create({

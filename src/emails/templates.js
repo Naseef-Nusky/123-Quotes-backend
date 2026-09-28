@@ -129,10 +129,10 @@ const EMAIL_TEMPLATES = [
         ${h1('New lead available')}
         ${p('A new <strong>{{serviceName}}</strong> lead is available near <strong>{{postcode}}</strong>.')}
         ${p('{{summary}}')}
-        ${btn('loginUrl', 'View lead')}
+        ${btn('businessLoginUrl', 'View lead')}
       `),
     }),
-    bodyText: 'New lead: {{serviceName}} / {{postcode}} — {{loginUrl}}',
+    bodyText: 'New lead: {{serviceName}} / {{postcode}} — {{businessLoginUrl}}',
   },
   {
     key: 'lead_unlocked',
@@ -155,7 +155,7 @@ const EMAIL_TEMPLATES = [
       bodyRows: contentCell(`
         ${h1('Purchase confirmed')}
         ${p('You purchased <strong>{{tokens}}</strong> tokens ({{packageName}}).')}
-        ${btn('loginUrl', 'Go to portal')}
+        ${btn('businessLoginUrl', 'Go to portal')}
       `),
     }),
     bodyText: 'Purchased {{tokens}} tokens ({{packageName}})',
@@ -168,10 +168,40 @@ const EMAIL_TEMPLATES = [
       bodyRows: contentCell(`
         ${h1('Low token balance')}
         ${p('Your balance is <strong>{{balance}}</strong> tokens. Top up to keep unlocking leads.')}
-        ${btn('loginUrl', 'Buy tokens')}
+        ${btn('businessLoginUrl', 'Buy tokens')}
       `),
     }),
     bodyText: 'Low balance: {{balance}} tokens',
+  },
+  {
+    key: 'professional_under_review',
+    subject: 'Your 123Quotes application is under review',
+    bodyHtml: shell({
+      title: 'Application under review',
+      bodyRows: contentCell(`
+        ${h1('Application under review')}
+        ${p('Hi {{name}},')}
+        ${p('Thank you for submitting your details. Your business application is currently under review by our team.')}
+        ${p('We will email you once your account has been approved so you can start viewing leads.')}
+        ${p('If you have any questions, reply to this email or contact <a href="mailto:info@123quotes.co.uk" style="color:' + BRAND_BLUE + ';text-decoration:none;">info@123quotes.co.uk</a>.')}
+      `),
+    }),
+    bodyText:
+      'Hi {{name}}, thank you for submitting your details. Your business application is currently under review. We will email you once it is approved.',
+  },
+  {
+    key: 'professional_approved',
+    subject: 'Your 123Quotes application has been approved',
+    bodyHtml: shell({
+      title: 'Application approved',
+      bodyRows: contentCell(`
+        ${h1('You are approved')}
+        ${p('Hi {{name}},')}
+        ${p('Great news — your business application has been approved. You can now log in and start viewing leads.')}
+        ${btn('businessLoginUrl', 'Log in to 123Quotes')}
+      `),
+    }),
+    bodyText: 'Hi {{name}}, your business application has been approved. Log in: {{businessLoginUrl}}',
   },
 ]
 

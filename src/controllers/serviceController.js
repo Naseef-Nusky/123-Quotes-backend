@@ -51,18 +51,22 @@ const getService = asyncHandler(async (req, res) => {
   return ok(res, { service })
 })
 
+const adminListCategories = asyncHandler(async (_req, res) => {
+  const categories = await prisma.category.findMany({
+    orderBy: { sortOrder: 'asc' },
+    include: { _count: { select: { services: true } } },
+  })
+  return ok(res, { categories })
+})
+
 const adminListServices = asyncHandler(async (_req, res) => {
+  // Keep list payload light — questions load per-service in CRM Pro.Mgmt
   const [categories, services] = await Promise.all([
     prisma.category.findMany({ orderBy: { sortOrder: 'asc' } }),
     prisma.service.findMany({
       where: { isActive: true },
       include: {
-        category: true,
-        questions: {
-          where: { isActive: true },
-          orderBy: { sortOrder: 'asc' },
-          include: { options: { orderBy: { sortOrder: 'asc' } } },
-        },
+        category: { select: { id: true, name: true, slug: true } },
         _count: { select: { questions: true, requests: true } },
       },
       orderBy: { sortOrder: 'asc' },
@@ -158,6 +162,7 @@ module.exports = {
   listCategories,
   listServices,
   getService,
+  adminListCategories,
   adminListServices,
   adminUpsertCategory,
   adminUpsertService,

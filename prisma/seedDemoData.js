@@ -1,7 +1,10 @@
 /** Idempotent demo marketplace data (~4 records per entity). */
 
 async function upsertCustomer(prisma, bcrypt, { email, password, firstName, lastName, phone, postcode, city }) {
-  const existing = await prisma.user.findUnique({ where: { email }, include: { customer: true } })
+  const existing = await prisma.user.findUnique({
+    where: { email_role: { email, role: 'CUSTOMER' } },
+    include: { customer: true },
+  })
   if (existing) return existing
   return prisma.user.create({
     data: {
@@ -37,7 +40,7 @@ async function upsertProfessional(
   },
 ) {
   const existing = await prisma.user.findUnique({
-    where: { email },
+    where: { email_role: { email, role: 'PROFESSIONAL' } },
     include: { professional: { include: { services: true, serviceAreas: true } } },
   })
   if (existing?.professional) {
@@ -510,10 +513,18 @@ async function seedDemoData(prisma, bcrypt) {
     daysAgo: 2,
   })
 
-  const pixel = await prisma.user.findUnique({ where: { email: 'pixel@123quotes.com' } })
-  const prime = await prisma.user.findUnique({ where: { email: 'pro@123quotes.com' } })
-  const virtual = await prisma.user.findUnique({ where: { email: 'virtualtours@123quotes.com' } })
-  const creations = await prisma.user.findUnique({ where: { email: 'creations@123quotes.com' } })
+  const pixel = await prisma.user.findUnique({
+    where: { email_role: { email: 'pixel@123quotes.com', role: 'PROFESSIONAL' } },
+  })
+  const prime = await prisma.user.findUnique({
+    where: { email_role: { email: 'pro@123quotes.com', role: 'PROFESSIONAL' } },
+  })
+  const virtual = await prisma.user.findUnique({
+    where: { email_role: { email: 'virtualtours@123quotes.com', role: 'PROFESSIONAL' } },
+  })
+  const creations = await prisma.user.findUnique({
+    where: { email_role: { email: 'creations@123quotes.com', role: 'PROFESSIONAL' } },
+  })
 
   if (pixel) {
     await seedPayment(prisma, {

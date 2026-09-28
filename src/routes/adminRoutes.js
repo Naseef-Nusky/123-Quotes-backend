@@ -22,6 +22,12 @@ const {
   upsertSetting,
   getPages,
   upsertPage,
+  listNotifications,
+  markNotificationRead,
+  markAllNotificationsRead,
+  listBusinessApplications,
+  approveBusinessApplication,
+  declineBusinessApplication,
 } = require('../controllers/adminController')
 const { protect, authorize } = require('../middleware/auth')
 
@@ -30,6 +36,12 @@ const router = express.Router()
 router.use(protect, authorize('ADMIN'))
 
 router.get('/dashboard', dashboard)
+router.get('/notifications', listNotifications)
+router.patch('/notifications/read-all', markAllNotificationsRead)
+router.patch('/notifications/:id/read', markNotificationRead)
+router.get('/business-applications', listBusinessApplications)
+router.post('/business-applications/:id/approve', approveBusinessApplication)
+router.post('/business-applications/:id/decline', declineBusinessApplication)
 router.get('/users', listUsers)
 router.post('/users', createAdmin)
 router.put('/users/:id', updateSystemUser)

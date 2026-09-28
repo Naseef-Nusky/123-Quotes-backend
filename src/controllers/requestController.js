@@ -249,11 +249,13 @@ const submitGuestRequest = asyncHandler(async (req, res) => {
   if (!serviceId || !postcode) return fail(res, 'serviceId and postcode are required')
 
   const emailNorm = String(email).trim().toLowerCase()
-  const exists = await prisma.user.findUnique({ where: { email: emailNorm } })
+  const exists = await prisma.user.findUnique({
+    where: { email_role: { email: emailNorm, role: 'CUSTOMER' } },
+  })
   if (exists) {
     return fail(
       res,
-      'An account with this email already exists. Please log in to submit another request.',
+      'A customer account with this email already exists. Please log in to submit another request.',
       409,
     )
   }
@@ -398,6 +400,20 @@ const adminUpdateRequestStatus = asyncHandler(async (req, res) => {
   return ok(res, { request })
 })
 
+const deleteRequest = asyncHandler(async (req, res) => {
+  const request = await prisma.customerRequest.findUnique({
+    where: { id: req.params.id },
+    select: { id: true, customerId: true },
+  })
+  if (!request) return fail(res, 'Request not found', 404)
+  if (!req.user.customer?.id || request.customerId !== req.user.customer.id) {
+    return fail(res, 'Forbidden', 403)
+  }
+
+  await prisma.customerRequest.delete({ where: { id: request.id } })
+  return ok(res, { deleted: true, id: request.id })
+})
+
 module.exports = {
   createDraft,
   saveAnswers,
@@ -405,6 +421,7 @@ module.exports = {
   submitGuestRequest,
   myRequests,
   getRequest,
+  deleteRequest,
   adminListRequests,
   adminUpdateRequestStatus,
 }

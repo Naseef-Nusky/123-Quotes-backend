@@ -1,5 +1,9 @@
+const fs = require('fs')
+const path = require('path')
 const sgMail = require('@sendgrid/mail')
 const prisma = require('../config/db')
+
+const LOGO_CID = '123quotes-logo'
 
 const enabled = () =>
   process.env.EMAIL_ENABLED === 'true' && Boolean(process.env.SENDGRID_API_KEY)
@@ -15,13 +19,52 @@ function assetBase() {
   )
 }
 
+function resolveLogoFile() {
+  const candidates = [
+    process.env.EMAIL_LOGO_PATH,
+    path.join(__dirname, '../assets/logo.png'),
+    path.join(__dirname, '../../../123 Quotes-frontend/public/logo.png'),
+  ].filter(Boolean)
+
+  for (const file of candidates) {
+    try {
+      if (fs.existsSync(file)) return file
+    } catch {
+      /* ignore */
+    }
+  }
+  return null
+}
+
+function isPublicHttpUrl(url) {
+  return /^https:\/\//i.test(String(url || ''))
+}
+
 function brandVars(extra = {}) {
   const base = assetBase()
+  const configured = process.env.EMAIL_LOGO_URL || ''
+
+  // Email clients cannot load localhost/http images — use inline CID unless a public https logo is set
+  const logoUrl = isPublicHttpUrl(configured) ? configured : `cid:${LOGO_CID}`
+
   return {
-    logoUrl: process.env.EMAIL_LOGO_URL || `${base}/logo.png`,
+    logoUrl,
     appUrl: base,
     loginUrl: `${base}/login`,
+    businessLoginUrl: `${base}/business/login`,
     ...extra,
+  }
+}
+
+function buildLogoAttachment() {
+  const file = resolveLogoFile()
+  if (!file) return null
+  return {
+    content: fs.readFileSync(file).toString('base64'),
+    filename: 'logo.png',
+    type: 'image/png',
+    disposition: 'inline',
+    content_id: LOGO_CID,
   }
 }
 
@@ -34,6 +77,7 @@ async function renderTemplate(key, vars = {}) {
       subject: merged.subject || '123 Quotes Notification',
       html: merged.html || `<p>${merged.body || ''}</p>`,
       text: merged.text || merged.body || '',
+      logoUrl: merged.logoUrl,
     }
   }
 
@@ -47,6 +91,7 @@ async function renderTemplate(key, vars = {}) {
     subject: replace(template.subject),
     html: replace(template.bodyHtml),
     text: replace(template.bodyText || ''),
+    logoUrl: merged.logoUrl,
   }
 }
 
@@ -67,11 +112,13 @@ async function sendEmail({ to, templateKey, vars, type, userId, title, body }) {
   }
 
   if (!enabled()) {
-    console.log(`[email:dev] to=${to} subject=${content.subject} logo=${brandVars().logoUrl}`)
+    console.log(
+      `[email:dev] to=${to} subject=${content.subject} logo=${content.logoUrl}`,
+    )
     return { queued: false, mocked: true, subject: content.subject, html: content.html }
   }
 
-  await sgMail.send({
+  const msg = {
     to,
     from: {
       email: process.env.SENDGRID_FROM_EMAIL || 'noreply@123quotes.com',
@@ -80,7 +127,33 @@ async function sendEmail({ to, templateKey, vars, type, userId, title, body }) {
     subject: content.subject,
     html: content.html,
     text: content.text || undefined,
-  })
+  }
+
+  if (String(content.logoUrl || '').startsWith('cid:')) {
+    const attachment = buildLogoAttachment()
+    if (attachment) {
+      msg.attachments = [attachment]
+    } else {
+      console.warn('[email:sendgrid] logo file missing — emails will send without logo image')
+    }
+  }
+
+  try {
+    await sgMail.send(msg)
+  } catch (err) {
+    const detail = err?.response?.body || err.message
+    console.error('[email:sendgrid] failed', {
+      to,
+      from: process.env.SENDGRID_FROM_EMAIL,
+      templateKey,
+      detail,
+    })
+    throw new Error(
+      typeof detail === 'string'
+        ? detail
+        : detail?.errors?.[0]?.message || 'SendGrid email failed',
+    )
+  }
 
   if (userId) {
     await prisma.notification.updateMany({
@@ -89,7 +162,10 @@ async function sendEmail({ to, templateKey, vars, type, userId, title, body }) {
     })
   }
 
+  console.log(
+    `[email:sent] to=${to} subject=${content.subject} template=${templateKey || '—'} logo=${content.logoUrl}`,
+  )
   return { queued: true }
 }
 
-module.exports = { sendEmail, renderTemplate, brandVars }
+module.exports = { sendEmail, renderTemplate, brandVars, resolveLogoFile }

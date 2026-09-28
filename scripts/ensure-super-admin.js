@@ -22,7 +22,9 @@ async function main() {
   const email = process.env.SUPER_ADMIN_EMAIL || 'superadmin@123quotes.com'
   const password = process.env.SUPER_ADMIN_PASSWORD || 'superadmin123'
 
-  let user = await prisma.user.findUnique({ where: { email } })
+  let user = await prisma.user.findUnique({
+    where: { email_role: { email, role: 'SUPER_ADMIN' } },
+  })
   if (!user) {
     user = await prisma.user.create({
       data: {

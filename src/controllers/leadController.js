@@ -61,7 +61,7 @@ const professionalLeads = asyncHandler(async (req, res) => {
           request: {
             include: {
               customer: { include: { user: true } },
-              answers: { include: { question: true } },
+              answers: { include: { question: { include: { options: true } } } },
             },
           },
         },
@@ -101,7 +101,7 @@ const unlock = asyncHandler(async (req, res) => {
         request: {
           include: {
             customer: { include: { user: true } },
-            answers: { include: { question: true } },
+            answers: { include: { question: { include: { options: true } } } },
           },
         },
       },
@@ -124,7 +124,7 @@ const adminListLeads = asyncHandler(async (_req, res) => {
       request: {
         include: {
           customer: { include: { user: true } },
-          answers: { include: { question: true } },
+          answers: { include: { question: { include: { options: true } } } },
         },
       },
       matches: { include: { professional: true } },
@@ -146,12 +146,17 @@ const adminUpdateLead = asyncHandler(async (req, res) => {
   const lead = await prisma.lead.findUnique({
     where: { id: req.params.id },
     include: {
-      request: { include: { customer: { include: { user: true } } } },
+      request: {
+        include: {
+          customer: { include: { user: true } },
+          answers: { include: { question: { include: { options: true } } } },
+        },
+      },
     },
   })
   if (!lead) return fail(res, 'Lead not found', 404)
 
-  const { firstName, lastName, phone, email, postcode, status, summary } = req.body
+  const { firstName, lastName, phone, email, postcode, status, summary, answers } = req.body
   const customer = lead.request?.customer
   const userId = customer?.userId
 
@@ -171,7 +176,9 @@ const adminUpdateLead = asyncHandler(async (req, res) => {
       if (userId && email) {
         const nextEmail = String(email).toLowerCase().trim()
         if (nextEmail !== customer.user?.email) {
-          const taken = await tx.user.findUnique({ where: { email: nextEmail } })
+          const taken = await tx.user.findUnique({
+            where: { email_role: { email: nextEmail, role: 'CUSTOMER' } },
+          })
           if (taken) {
             const err = new Error('Email already in use')
             err.status = 409
@@ -180,12 +187,44 @@ const adminUpdateLead = asyncHandler(async (req, res) => {
           await tx.user.update({ where: { id: userId }, data: { email: nextEmail } })
         }
       }
+
+      if (Array.isArray(answers) && lead.requestId) {
+        for (const answer of answers) {
+          if (!answer?.questionId) continue
+          const value = Array.isArray(answer.value)
+            ? answer.value.join(', ')
+            : String(answer.value ?? '')
+          await tx.requestAnswer.upsert({
+            where: {
+              requestId_questionId: {
+                requestId: lead.requestId,
+                questionId: answer.questionId,
+              },
+            },
+            create: {
+              requestId: lead.requestId,
+              questionId: answer.questionId,
+              value,
+            },
+            update: { value },
+          })
+        }
+      }
+
+      let nextSummary = summary
+      if (Array.isArray(answers) && answers.length) {
+        nextSummary = answers
+          .map((a) => String(a.value ?? '').trim())
+          .filter(Boolean)
+          .join(' / ')
+      }
+
       await tx.lead.update({
         where: { id: lead.id },
         data: {
           ...(postcode != null ? { postcode } : {}),
           ...(status ? { status } : {}),
-          ...(summary != null ? { summary } : {}),
+          ...(nextSummary != null ? { summary: nextSummary } : {}),
         },
       })
       if (postcode != null && lead.requestId) {
@@ -206,7 +245,7 @@ const adminUpdateLead = asyncHandler(async (req, res) => {
       request: {
         include: {
           customer: { include: { user: true } },
-          answers: { include: { question: true } },
+          answers: { include: { question: { include: { options: true } } } },
         },
       },
       matches: { include: { professional: true } },

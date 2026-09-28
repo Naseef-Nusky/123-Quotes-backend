@@ -61,11 +61,21 @@ app.use((err, _req, res, _next) => {
 async function start() {
   try {
     await connectDB()
-    const server = app.listen(PORT, () => {
+
+    const server = app.listen(PORT)
+
+    server.on('listening', () => {
       console.log(`123 Quotes API running on http://localhost:${PORT}`)
     })
+
     server.on('error', (err) => {
-      console.error('Server listen error:', err.message)
+      if (err.code === 'EADDRINUSE') {
+        console.error(
+          `Port ${PORT} is already in use. Stop the other process (only run one "npm run dev"), then try again.`,
+        )
+      } else {
+        console.error('Server listen error:', err.message)
+      }
       process.exit(1)
     })
   } catch {
