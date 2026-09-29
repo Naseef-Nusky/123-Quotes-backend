@@ -2,6 +2,7 @@ const express = require('express')
 const {
   professionalLeads,
   unlock,
+  decline,
   adminListLeads,
   adminDeleteLead,
   adminUpdateLead,
@@ -13,6 +14,7 @@ const router = express.Router()
 
 router.get('/mine', protect, authorize('PROFESSIONAL'), professionalLeads)
 router.post('/:id/unlock', protect, authorize('PROFESSIONAL'), unlock)
+router.post('/:id/decline', protect, authorize('PROFESSIONAL'), decline)
 router.get('/admin/all', protect, authorize('ADMIN'), adminListLeads)
 router.put('/admin/:id', protect, authorize('ADMIN'), adminUpdateLead)
 router.delete('/admin/:id', protect, authorize('ADMIN'), adminDeleteLead)

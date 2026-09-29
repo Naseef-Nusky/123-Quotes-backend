@@ -115,6 +115,7 @@ async function matchProfessionalsForLead(leadId) {
         score: match.score,
         status: 'AVAILABLE',
       },
+      // Keep DECLINED / UNLOCKED / VIEWED — only refresh score
       update: { score: match.score },
     })
 

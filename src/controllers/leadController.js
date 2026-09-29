@@ -52,7 +52,10 @@ const professionalLeads = asyncHandler(async (req, res) => {
   if (!proId) return fail(res, 'Professional profile required', 403)
 
   const matches = await prisma.leadMatch.findMany({
-    where: { professionalId: proId },
+    where: {
+      professionalId: proId,
+      status: { notIn: ['DECLINED', 'EXPIRED'] },
+    },
     include: {
       lead: {
         include: {
@@ -115,6 +118,46 @@ const unlock = asyncHandler(async (req, res) => {
   } catch (err) {
     return fail(res, err.message, 400)
   }
+})
+
+const decline = asyncHandler(async (req, res) => {
+  const proId = req.user.professional?.id
+  if (!proId) return fail(res, 'Professional profile required', 403)
+
+  const match = await prisma.leadMatch.findUnique({
+    where: {
+      leadId_professionalId: { leadId: req.params.id, professionalId: proId },
+    },
+  })
+  if (!match) return fail(res, 'Lead is not matched to this professional', 404)
+  if (match.status === 'DECLINED') {
+    return ok(res, { message: 'Lead already declined', match })
+  }
+  if (match.status === 'UNLOCKED') {
+    return fail(res, 'Cannot decline a lead you have already unlocked', 400)
+  }
+
+  const unlock = await prisma.leadUnlock.findUnique({
+    where: { leadId_professionalId: { leadId: req.params.id, professionalId: proId } },
+  })
+  if (unlock) {
+    return fail(res, 'Cannot decline a lead you have already unlocked', 400)
+  }
+
+  const updated = await prisma.leadMatch.update({
+    where: { id: match.id },
+    data: { status: 'DECLINED' },
+  })
+
+  await logActivity({
+    userId: req.user.id,
+    action: 'lead.decline',
+    entityType: 'Lead',
+    entityId: req.params.id,
+    ip: req.ip,
+  })
+
+  return ok(res, { message: 'Lead declined', match: updated })
 })
 
 const adminListLeads = asyncHandler(async (_req, res) => {
@@ -264,6 +307,7 @@ const adminRematch = asyncHandler(async (req, res) => {
 module.exports = {
   professionalLeads,
   unlock,
+  decline,
   adminListLeads,
   adminDeleteLead,
   adminUpdateLead,
