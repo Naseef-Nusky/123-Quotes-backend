@@ -1,10 +1,14 @@
 /**
  * Shared branded HTML email templates for 123 Quotes.
- * Logo is injected via {{logoUrl}} (set automatically by emailService).
+ * Logo is injected via {{logoUrl}} (inline CID from emailService when sending).
  */
 
 const BRAND_BLUE = '#1e8fd5'
+const BRAND_BLUE_LIGHT = '#3baee8'
 const BRAND_NAVY = '#0a3a7a'
+const TEXT = '#222222'
+const MUTED = '#64748b'
+const BORDER = '#d6e4f0'
 
 function shell({ title, bodyRows }) {
   return `<!DOCTYPE html>
@@ -12,22 +16,30 @@ function shell({ title, bodyRows }) {
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
   <title>${title}</title>
 </head>
-<body style="margin:0;padding:0;background:#f4f8fc;font-family:Arial,Helvetica,sans-serif;color:#222222;">
+<body style="margin:0;padding:0;background:#f4f8fc;font-family:Arial,Helvetica,sans-serif;color:${TEXT};">
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#f4f8fc;">
     <tr>
       <td align="center" style="padding:32px 16px;">
-        <table role="presentation" width="560" cellpadding="0" cellspacing="0" border="0" style="width:100%;max-width:560px;background:#ffffff;border-radius:8px;overflow:hidden;border:1px solid #d6e4f0;">
+        <table role="presentation" width="560" cellpadding="0" cellspacing="0" border="0" style="width:100%;max-width:560px;background:#ffffff;border-radius:10px;overflow:hidden;border:1px solid ${BORDER};box-shadow:0 4px 24px rgba(10,58,122,0.08);">
           <tr>
-            <td align="center" style="padding:28px 24px 18px;background:#ffffff;">
-              <img src="{{logoUrl}}" alt="123 Quotes" width="140" style="display:block;border:0;height:auto;max-width:140px;" />
+            <td style="height:4px;background:linear-gradient(90deg,${BRAND_BLUE_LIGHT} 0%,${BRAND_BLUE} 50%,${BRAND_NAVY} 100%);font-size:0;line-height:0;">&nbsp;</td>
+          </tr>
+          <tr>
+            <td align="center" style="padding:28px 28px 16px;background:#ffffff;">
+              <img src="{{logoUrl}}" alt="123 Quotes" width="140" style="display:block;border:0;height:auto;max-width:140px;margin:0 auto;" />
             </td>
           </tr>
           ${bodyRows}
           <tr>
-            <td style="padding:20px 24px 28px;font-size:12px;line-height:1.5;color:#64748b;text-align:center;border-top:1px solid #e8f0f7;">
-              © 123Quotes · <a href="mailto:info@123quotes.co.uk" style="color:${BRAND_BLUE};text-decoration:none;">info@123quotes.co.uk</a>
+            <td style="padding:22px 28px 28px;font-size:12px;line-height:1.6;color:${MUTED};text-align:center;border-top:1px solid #e8f0f7;background:#fafcfe;">
+              <p style="margin:0 0 8px;font-weight:600;color:${BRAND_NAVY};">123Quotes</p>
+              <p style="margin:0 0 8px;">
+                <a href="mailto:info@123quotes.co.uk" style="color:${BRAND_BLUE};text-decoration:none;">info@123quotes.co.uk</a>
+              </p>
+              <p style="margin:0;font-size:11px;">© 123Quotes · All rights reserved</p>
             </td>
           </tr>
         </table>
@@ -39,23 +51,33 @@ function shell({ title, bodyRows }) {
 }
 
 function p(text) {
-  return `<p style="margin:0 0 16px;font-size:15px;line-height:1.65;color:#222222;">${text}</p>`
+  return `<p style="margin:0 0 16px;font-size:15px;line-height:1.65;color:${TEXT};">${text}</p>`
 }
 
 function h1(text) {
-  return `<h1 style="margin:0 0 20px;font-size:28px;line-height:1.25;font-weight:700;color:#111111;">${text}</h1>`
+  return `<h1 style="margin:0 0 18px;font-size:26px;line-height:1.25;font-weight:700;color:#111111;">${text}</h1>`
 }
 
 function h2(text) {
-  return `<h2 style="margin:8px 0 12px;font-size:18px;line-height:1.3;font-weight:700;color:#111111;">${text}</h2>`
+  return `<h2 style="margin:20px 0 10px;font-size:18px;line-height:1.3;font-weight:700;color:${BRAND_NAVY};">${text}</h2>`
+}
+
+function link(hrefVar, label) {
+  return `<a href="{{${hrefVar}}}" style="color:${BRAND_BLUE};text-decoration:underline;font-weight:600;">${label}</a>`
 }
 
 function btn(hrefVar, label) {
-  return `<a href="{{${hrefVar}}}" style="display:inline-block;background:linear-gradient(180deg,${BRAND_BLUE} 0%,${BRAND_NAVY} 100%);color:#ffffff;text-decoration:none;padding:13px 24px;font-size:15px;font-weight:700;border-radius:6px;">${label}</a>`
+  return `<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:8px 0 22px;">
+  <tr>
+    <td align="left" style="border-radius:8px;background:linear-gradient(180deg,${BRAND_BLUE_LIGHT} 0%,${BRAND_BLUE} 45%,${BRAND_NAVY} 100%);">
+      <a href="{{${hrefVar}}}" target="_blank" style="display:inline-block;padding:14px 28px;font-size:15px;font-weight:700;color:#ffffff;text-decoration:none;border-radius:8px;">${label}</a>
+    </td>
+  </tr>
+</table>`
 }
 
 function contentCell(inner) {
-  return `<tr><td style="padding:8px 28px 28px;text-align:left;">${inner}</td></tr>`
+  return `<tr><td style="padding:4px 28px 8px;text-align:left;">${inner}</td></tr>`
 }
 
 const EMAIL_TEMPLATES = [
@@ -67,7 +89,7 @@ const EMAIL_TEMPLATES = [
       bodyRows: contentCell(`
         ${h1('Welcome to 123Quotes')}
         ${p('Hi {{customerName}},')}
-        ${p(`we've received your request and have already found {{matchCountLabel}} that match your criteria. To view them, simply <a href="{{loginUrl}}" style="color:${BRAND_BLUE};text-decoration:underline;">sign into your account</a>`)}
+        ${p(`We've received your request and have already found {{matchCountLabel}} that match your criteria. To view them, ${link('loginUrl', 'sign into your account')}.`)}
         ${p('<strong>Please remember:</strong> Professionals on 123Quotes pay to respond to you, so please let each of them know whether they are right for the job.')}
         ${h2('{{accountHeading}}')}
         ${p('{{accountBody}}')}
@@ -87,6 +109,7 @@ const EMAIL_TEMPLATES = [
         ${p('Hi {{name}},')}
         ${p('Thanks for joining 123Quotes. Please verify your email address to activate your account.')}
         ${btn('verifyUrl', 'Verify email')}
+        ${p('If you did not create this account, you can ignore this email.')}
       `),
     }),
     bodyText: 'Hi {{name}}, verify your email: {{verifyUrl}}',
@@ -98,6 +121,7 @@ const EMAIL_TEMPLATES = [
       title: 'Reset your password',
       bodyRows: contentCell(`
         ${h1('Reset your password')}
+        ${p('Hi {{name}},')}
         ${p('We received a request to reset your 123Quotes password. Click the button below to choose a new one.')}
         ${btn('resetUrl', 'Reset password')}
         ${p('If you did not request this, you can ignore this email.')}
@@ -127,9 +151,10 @@ const EMAIL_TEMPLATES = [
       title: 'New lead available',
       bodyRows: contentCell(`
         ${h1('New lead available')}
+        ${p('Hi there,')}
         ${p('A new <strong>{{serviceName}}</strong> lead is available near <strong>{{postcode}}</strong>.')}
         ${p('{{summary}}')}
-        ${btn('businessLoginUrl', 'View lead')}
+        ${btn('businessLoginUrl', 'View lead in portal')}
       `),
     }),
     bodyText: 'New lead: {{serviceName}} / {{postcode}} — {{businessLoginUrl}}',
@@ -143,9 +168,10 @@ const EMAIL_TEMPLATES = [
         ${h1('Lead unlocked')}
         ${p('Customer contact details are ready:')}
         ${p('<strong>{{customerName}}</strong><br/>Email: {{customerEmail}}<br/>Phone: {{customerPhone}}')}
+        ${btn('businessLoginUrl', 'Open lead in portal')}
       `),
     }),
-    bodyText: 'Unlocked: {{customerName}} {{customerEmail}} {{customerPhone}}',
+    bodyText: 'Unlocked: {{customerName}} {{customerEmail}} {{customerPhone}} — {{businessLoginUrl}}',
   },
   {
     key: 'token_purchase',
@@ -154,11 +180,12 @@ const EMAIL_TEMPLATES = [
       title: 'Token purchase confirmed',
       bodyRows: contentCell(`
         ${h1('Purchase confirmed')}
+        ${p('Thank you — your payment was successful.')}
         ${p('You purchased <strong>{{tokens}}</strong> tokens ({{packageName}}).')}
-        ${btn('businessLoginUrl', 'Go to portal')}
+        ${btn('businessLoginUrl', 'Go to business portal')}
       `),
     }),
-    bodyText: 'Purchased {{tokens}} tokens ({{packageName}})',
+    bodyText: 'Purchased {{tokens}} tokens ({{packageName}}) — {{businessLoginUrl}}',
   },
   {
     key: 'low_token',
@@ -167,11 +194,11 @@ const EMAIL_TEMPLATES = [
       title: 'Low token balance',
       bodyRows: contentCell(`
         ${h1('Low token balance')}
-        ${p('Your balance is <strong>{{balance}}</strong> tokens. Top up to keep unlocking leads.')}
+        ${p('Your balance is <strong>{{balance}}</strong> tokens. Top up to keep unlocking leads and reaching customers.')}
         ${btn('businessLoginUrl', 'Buy tokens')}
       `),
     }),
-    bodyText: 'Low balance: {{balance}} tokens',
+    bodyText: 'Low balance: {{balance}} tokens — top up: {{businessLoginUrl}}',
   },
   {
     key: 'professional_under_review',
@@ -183,7 +210,7 @@ const EMAIL_TEMPLATES = [
         ${p('Hi {{name}},')}
         ${p('Thank you for submitting your details. Your business application is currently under review by our team.')}
         ${p('We will email you once your account has been approved so you can start viewing leads.')}
-        ${p('If you have any questions, reply to this email or contact <a href="mailto:info@123quotes.co.uk" style="color:' + BRAND_BLUE + ';text-decoration:none;">info@123quotes.co.uk</a>.')}
+        ${p('If you have any questions, reply to this email or contact <a href="mailto:info@123quotes.co.uk" style="color:' + BRAND_BLUE + ';text-decoration:none;font-weight:600;">info@123quotes.co.uk</a>.')}
       `),
     }),
     bodyText:
@@ -196,9 +223,8 @@ const EMAIL_TEMPLATES = [
       title: 'Welcome to 123Quotes',
       bodyRows: contentCell(`
         ${h1('Welcome to 123Quotes, {{businessName}}')}
-        ${p('We are excited to work with you.')}
-        ${p('We are excited to work with you, please keep a look out for new leads from customers who are waiting for you to contact them.')}
-        ${p('You can log into your account and manage your leads anytime:')}
+        ${p('We are excited to work with you. Please keep a look out for new leads from customers who are waiting for you to contact them.')}
+        ${p('You can log into your account and manage your leads anytime. Set your password below, then sign in to your business portal.')}
         ${btn('setPasswordUrl', 'Log in to 123Quotes')}
       `),
     }),

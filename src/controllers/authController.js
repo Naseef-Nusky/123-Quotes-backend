@@ -304,7 +304,7 @@ const forgotPassword = asyncHandler(async (req, res) => {
     type: 'PASSWORD_RESET',
     title: 'Password reset',
     body: `Reset your password: ${resetUrl}`,
-    vars: { resetUrl },
+    vars: { resetUrl, name: user.professional?.contactName || user.customer?.firstName || 'there' },
   })
 
   return ok(res, generic)

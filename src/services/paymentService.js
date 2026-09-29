@@ -4,6 +4,25 @@ const prisma = require('../config/db')
 const { adjustTokens } = require('./tokenService')
 const { sendEmail } = require('./emailService')
 
+function paymentsLive() {
+  return (
+    process.env.PAYMENTS_ENABLED === 'true' &&
+    Boolean(process.env.SQUARE_ACCESS_TOKEN) &&
+    Boolean(process.env.SQUARE_LOCATION_ID)
+  )
+}
+
+function getSquareConfig() {
+  const environment =
+    process.env.SQUARE_ENVIRONMENT === 'production' ? 'production' : 'sandbox'
+  return {
+    paymentsEnabled: paymentsLive(),
+    applicationId: process.env.SQUARE_APPLICATION_ID || '',
+    locationId: process.env.SQUARE_LOCATION_ID || '',
+    environment,
+  }
+}
+
 function getSquareClient() {
   if (!process.env.SQUARE_ACCESS_TOKEN) return null
   return new SquareClient({
@@ -13,6 +32,18 @@ function getSquareClient() {
         ? SquareEnvironment.Production
         : SquareEnvironment.Sandbox,
   })
+}
+
+function squareErrorMessage(err) {
+  const errors =
+    err?.errors ||
+    err?.body?.errors ||
+    err?.result?.errors ||
+    (Array.isArray(err?.errors) ? err.errors : null)
+  if (Array.isArray(errors) && errors[0]) {
+    return errors[0].detail || errors[0].code || err.message
+  }
+  return err?.message || 'Square payment failed'
 }
 
 async function purchaseTokenPackage({ user, packageId, sourceId }) {
@@ -25,27 +56,45 @@ async function purchaseTokenPackage({ user, packageId, sourceId }) {
     throw new Error('Only professionals can purchase tokens')
   }
 
-  const paymentsEnabled =
-    process.env.PAYMENTS_ENABLED === 'true' && Boolean(process.env.SQUARE_ACCESS_TOKEN)
-
+  const live = paymentsLive()
   let providerPaymentId = `dev_${randomUUID()}`
   let status = 'COMPLETED'
 
-  if (paymentsEnabled) {
-    const client = getSquareClient()
-    const payment = await client.payments.create({
-      sourceId,
-      idempotencyKey: randomUUID(),
-      amountMoney: {
-        amount: BigInt(tokenPackage.priceCents),
-        currency: tokenPackage.currency || 'GBP',
-      },
-      locationId: process.env.SQUARE_LOCATION_ID,
-      note: `Token package: ${tokenPackage.name}`,
-    })
+  if (live) {
+    if (!sourceId || sourceId === 'sandbox-token') {
+      throw new Error('Card payment token required. Please complete the Square checkout form.')
+    }
 
-    providerPaymentId = payment.payment?.id || providerPaymentId
-    status = payment.payment?.status === 'COMPLETED' ? 'COMPLETED' : 'PENDING'
+    try {
+      const client = getSquareClient()
+      const payment = await client.payments.create({
+        sourceId,
+        idempotencyKey: randomUUID(),
+        amountMoney: {
+          amount: BigInt(tokenPackage.priceCents),
+          currency: tokenPackage.currency || 'GBP',
+        },
+        locationId: process.env.SQUARE_LOCATION_ID,
+        note: `Token package: ${tokenPackage.name}`,
+        autocomplete: true,
+      })
+
+      const created = payment?.payment || payment
+      providerPaymentId = created?.id || providerPaymentId
+      const payStatus = String(created?.status || '').toUpperCase()
+      status = payStatus === 'COMPLETED' || payStatus === 'APPROVED' ? 'COMPLETED' : 'PENDING'
+    } catch (err) {
+      const message = squareErrorMessage(err)
+      console.error('[square:payment]', {
+        message,
+        packageId,
+        environment: process.env.SQUARE_ENVIRONMENT || 'sandbox',
+        locationId: process.env.SQUARE_LOCATION_ID,
+        applicationId: process.env.SQUARE_APPLICATION_ID,
+        errors: err?.errors || err?.body?.errors || err?.result?.errors || null,
+      })
+      throw new Error(message)
+    }
   }
 
   const paymentRow = await prisma.payment.create({
@@ -57,7 +106,11 @@ async function purchaseTokenPackage({ user, packageId, sourceId }) {
       status,
       provider: 'square',
       providerPaymentId,
-      meta: { tokens: tokenPackage.tokens, mocked: !paymentsEnabled },
+      meta: {
+        tokens: tokenPackage.tokens,
+        mocked: !live,
+        environment: process.env.SQUARE_ENVIRONMENT || 'sandbox',
+      },
     },
   })
 
@@ -84,7 +137,11 @@ async function purchaseTokenPackage({ user, packageId, sourceId }) {
     })
   }
 
-  return { payment: paymentRow, tokensAdded: status === 'COMPLETED' ? tokenPackage.tokens : 0 }
+  return {
+    payment: paymentRow,
+    tokensAdded: status === 'COMPLETED' ? tokenPackage.tokens : 0,
+    mocked: !live,
+  }
 }
 
-module.exports = { purchaseTokenPackage, getSquareClient }
+module.exports = { purchaseTokenPackage, getSquareClient, getSquareConfig, paymentsLive }

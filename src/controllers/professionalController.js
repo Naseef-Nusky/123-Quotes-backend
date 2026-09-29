@@ -1,7 +1,8 @@
 const prisma = require('../config/db')
 const { asyncHandler, ok, fail } = require('../utils/helpers')
-const { purchaseTokenPackage } = require('../services/paymentService')
+const { purchaseTokenPackage, getSquareConfig } = require('../services/paymentService')
 const { adjustTokens } = require('../services/tokenService')
+const { deleteProfessionalAccount } = require('../services/accountService')
 
 const getProfile = asyncHandler(async (req, res) => {
   const profile = await prisma.professionalProfile.findUnique({
@@ -92,16 +93,20 @@ const listPackages = asyncHandler(async (_req, res) => {
   return ok(res, { packages })
 })
 
+const paymentConfig = asyncHandler(async (_req, res) => {
+  return ok(res, { square: getSquareConfig() })
+})
+
 const buyTokens = asyncHandler(async (req, res) => {
   try {
     const result = await purchaseTokenPackage({
       user: req.user,
       packageId: req.body.packageId,
-      sourceId: req.body.sourceId || 'sandbox-token',
+      sourceId: req.body.sourceId || null,
     })
     return ok(res, result)
   } catch (err) {
-    return fail(res, err.message)
+    return fail(res, err.message, 400)
   }
 })
 
@@ -217,6 +222,7 @@ module.exports = {
   setServices,
   setServiceAreas,
   listPackages,
+  paymentConfig,
   buyTokens,
   tokenHistory,
   publicDirectory,

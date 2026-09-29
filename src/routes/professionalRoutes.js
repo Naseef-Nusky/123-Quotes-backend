@@ -5,6 +5,7 @@ const {
   setServices,
   setServiceAreas,
   listPackages,
+  paymentConfig,
   buyTokens,
   tokenHistory,
   publicDirectory,
@@ -19,6 +20,7 @@ const router = express.Router()
 router.get('/directory', publicDirectory)
 router.get('/directory/:id', publicProfile)
 router.get('/packages', listPackages)
+router.get('/payments/config', paymentConfig)
 
 router.get('/me', protect, authorize('PROFESSIONAL'), getProfile)
 router.put('/me', protect, authorize('PROFESSIONAL'), updateProfile)
