@@ -132,7 +132,8 @@ const updateUserStatus = asyncHandler(async (req, res) => {
   ) {
     await sendProfessionalApprovedEmail(
       user,
-      existing.professional.contactName || existing.professional.companyName,
+      existing.professional.contactName,
+      existing.professional.companyName,
     )
     await prisma.businessApplication.updateMany({
       where: { userId: existing.id, status: 'PENDING', isAdditional: false },
@@ -517,11 +518,13 @@ const updateProfessional = asyncHandler(async (req, res) => {
 })
 
 const deleteProfessional = asyncHandler(async (req, res) => {
-  const existing = await prisma.user.findUnique({ where: { id: req.params.id } })
-  if (!existing) return fail(res, 'User not found', 404)
-  if (existing.role !== 'PROFESSIONAL') return fail(res, 'Not a professional account', 400)
-  await prisma.user.delete({ where: { id: req.params.id } })
-  return ok(res, { deleted: true, id: req.params.id })
+  try {
+    const { deleteProfessionalAccount } = require('../services/accountService')
+    const result = await deleteProfessionalAccount(req.params.id)
+    return ok(res, result)
+  } catch (err) {
+    return fail(res, err.message || 'Delete failed', err.status || 400)
+  }
 })
 
 const updateCustomer = asyncHandler(async (req, res) => {
@@ -739,7 +742,11 @@ const createProfessional = asyncHandler(async (req, res) => {
       serviceName: typeOrName || null,
     })
   } else if (nextStatus === 'ACTIVE') {
-    await sendProfessionalApprovedEmail(user, String(contactName).trim())
+    await sendProfessionalApprovedEmail(
+      user,
+      String(contactName).trim(),
+      String(companyName || contactName).trim(),
+    )
   }
 
   return ok(res, { user }, 201)
@@ -846,6 +853,7 @@ const approveBusinessApplication = asyncHandler(async (req, res) => {
       await sendProfessionalApprovedEmail(
         user,
         application.contactName || user.professional?.contactName,
+        application.companyName || user.professional?.companyName,
       )
     }
   }

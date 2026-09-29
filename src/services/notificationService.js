@@ -1,5 +1,7 @@
 const prisma = require('../config/db')
 const { sendEmail } = require('./emailService')
+const { randomToken } = require('../utils/crypto')
+const { EMAIL_TEMPLATES } = require('../emails/templates')
 
 function adminBaseUrl() {
   return (process.env.ADMIN_URL || process.env.CRM_URL || 'http://localhost:5174').replace(/\/$/, '')
@@ -7,6 +9,27 @@ function adminBaseUrl() {
 
 function appBaseUrl() {
   return (process.env.APP_URL || 'http://localhost:5173').replace(/\/$/, '')
+}
+
+async function ensureEmailTemplate(key) {
+  const source = EMAIL_TEMPLATES.find((t) => t.key === key)
+  if (!source) return
+  await prisma.emailTemplate.upsert({
+    where: { key },
+    create: {
+      key: source.key,
+      subject: source.subject,
+      bodyHtml: source.bodyHtml,
+      bodyText: source.bodyText,
+      isActive: true,
+    },
+    update: {
+      subject: source.subject,
+      bodyHtml: source.bodyHtml,
+      bodyText: source.bodyText,
+      isActive: true,
+    },
+  })
 }
 
 /** In-app notifications for all admin / super-admin users. */
@@ -51,17 +74,45 @@ async function sendProfessionalUnderReviewEmail(user, contactName) {
   })
 }
 
-async function sendProfessionalApprovedEmail(user, contactName) {
+async function sendProfessionalApprovedEmail(user, contactName, companyName) {
+  const setPasswordToken = randomToken()
+  const expiry = new Date(Date.now() + 1000 * 60 * 60 * 24 * 7) // 7 days
+
+  await prisma.user.update({
+    where: { id: user.id },
+    data: {
+      resetToken: setPasswordToken,
+      resetTokenExpiry: expiry,
+      emailVerified: true,
+      status: 'ACTIVE',
+    },
+  })
+
+  const base = appBaseUrl()
+  const setPasswordUrl = `${base}/set-password?token=${encodeURIComponent(setPasswordToken)}&audience=business`
+  const businessLoginUrl = `${base}/business/login`
+  const businessName =
+    companyName ||
+    contactName ||
+    user.professional?.companyName ||
+    user.professional?.contactName ||
+    'there'
+
+  await ensureEmailTemplate('professional_approved')
+
   return sendEmail({
     to: user.email,
     userId: user.id,
     templateKey: 'professional_approved',
     type: 'STATUS_UPDATE',
-    title: 'Application approved',
-    body: 'Your business application has been approved. You can now log in.',
+    title: 'Welcome to 123Quotes',
+    body: 'Your business application has been approved. Log in to manage your leads.',
     vars: {
-      name: contactName || 'there',
-      loginUrl: `${appBaseUrl()}/business/login`,
+      name: contactName || businessName,
+      businessName,
+      setPasswordUrl,
+      businessLoginUrl,
+      loginUrl: setPasswordUrl,
     },
   })
 }

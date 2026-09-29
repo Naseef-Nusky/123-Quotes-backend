@@ -192,6 +192,25 @@ const adminAdjustTokens = asyncHandler(async (req, res) => {
   return ok(res, { professional: updated })
 })
 
+const deleteMyAccount = asyncHandler(async (req, res) => {
+  const userId = req.user?.id
+  if (!userId) return fail(res, 'Unauthorized', 401)
+  if (req.user.role !== 'PROFESSIONAL') {
+    return fail(res, 'Only business / professional accounts can use this endpoint', 403)
+  }
+
+  try {
+    const { deleteProfessionalAccount } = require('../services/accountService')
+    const result = await deleteProfessionalAccount(userId)
+    return ok(res, {
+      ...result,
+      message: 'Your business account and profile have been permanently deleted.',
+    })
+  } catch (err) {
+    return fail(res, err.message || 'Delete failed', err.status || 400)
+  }
+})
+
 module.exports = {
   getProfile,
   updateProfile,
@@ -203,4 +222,5 @@ module.exports = {
   publicDirectory,
   publicProfile,
   adminAdjustTokens,
+  deleteMyAccount,
 }

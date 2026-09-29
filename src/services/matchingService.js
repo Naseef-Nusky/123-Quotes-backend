@@ -12,14 +12,27 @@ async function matchProfessionalsForLead(leadId) {
   })
   if (!lead) throw new Error('Lead not found')
 
+  const categoryId = lead.service?.categoryId || null
+
+  // Match exact service OR any service in the same category
   const professionals = await prisma.professionalProfile.findMany({
     where: {
       isAvailable: true,
       user: { status: 'ACTIVE', emailVerified: true },
-      services: { some: { serviceId: lead.serviceId } },
+      services: {
+        some: categoryId
+          ? {
+              OR: [
+                { serviceId: lead.serviceId },
+                { service: { categoryId, isActive: true } },
+              ],
+            }
+          : { serviceId: lead.serviceId },
+      },
     },
     include: {
       serviceAreas: true,
+      services: { include: { service: true } },
       user: true,
     },
   })
@@ -37,18 +50,58 @@ async function matchProfessionalsForLead(leadId) {
       const areaHit = areas.some((area) => {
         if (area.postcode && postcodePrefix(area.postcode) === leadPrefix) return true
         if (area.city && lead.city && area.city.toLowerCase() === lead.city.toLowerCase()) return true
+        // Nationwide coverage
+        if (String(area.postcode || '').toUpperCase() === 'NATIONWIDE') return true
+        if (String(area.label || '').toLowerCase() === 'nationwide') return true
         return false
       })
       if (!areaHit) continue
       score += 30
     }
 
-    matches.push({ professionalId: pro.id, score, email: pro.user.email, userId: pro.userId })
+    const offersExact = (pro.services || []).some((ps) => ps.serviceId === lead.serviceId)
+    const offersCategory =
+      !offersExact &&
+      categoryId &&
+      (pro.services || []).some((ps) => ps.service?.categoryId === categoryId)
+
+    if (offersExact) score += 25
+    else if (offersCategory) score += 10
+    else continue
+
+    matches.push({
+      professionalId: pro.id,
+      score,
+      email: pro.user.email,
+      userId: pro.userId,
+      matchType: offersExact ? 'service' : 'category',
+    })
   }
 
   matches.sort((a, b) => b.score - a.score)
 
+  const matchedProIds = matches.map((m) => m.professionalId)
+
+  // Drop stale matches that no longer qualify (so pros don't see incorrect leads)
+  await prisma.leadMatch.deleteMany({
+    where: {
+      leadId: lead.id,
+      ...(matchedProIds.length
+        ? { professionalId: { notIn: matchedProIds } }
+        : {}),
+    },
+  })
+
   for (const match of matches) {
+    const existing = await prisma.leadMatch.findUnique({
+      where: {
+        leadId_professionalId: {
+          leadId: lead.id,
+          professionalId: match.professionalId,
+        },
+      },
+    })
+
     await prisma.leadMatch.upsert({
       where: {
         leadId_professionalId: {
@@ -65,33 +118,49 @@ async function matchProfessionalsForLead(leadId) {
       update: { score: match.score },
     })
 
-    await sendEmail({
-      to: match.email,
-      userId: match.userId,
-      templateKey: 'new_lead',
-      type: 'NEW_LEAD',
-      title: 'New matching lead available',
-      body: `A new ${lead.service.name} lead is available near ${lead.postcode}.`,
-      vars: {
-        serviceName: lead.service.name,
-        postcode: lead.postcode,
-        summary: lead.summary || '',
-      },
-    })
+    // Email only on first match (avoid spam on rematch)
+    if (!existing) {
+      await sendEmail({
+        to: match.email,
+        userId: match.userId,
+        templateKey: 'new_lead',
+        type: 'NEW_LEAD',
+        title: 'New matching lead available',
+        body: `A new ${lead.service.name} lead is available near ${lead.postcode}.`,
+        vars: {
+          serviceName: lead.service.name,
+          postcode: lead.postcode,
+          summary: lead.summary || '',
+        },
+      })
+    }
   }
+
+  const nextStatus =
+    lead.status === 'CLOSED' ||
+    lead.status === 'CANCELLED' ||
+    lead.status === 'PARTIALLY_UNLOCKED'
+      ? lead.status
+      : matches.length
+        ? 'MATCHED'
+        : 'OPEN'
 
   await prisma.lead.update({
     where: { id: lead.id },
     data: {
       matchedCount: matches.length,
-      status: matches.length ? 'MATCHED' : 'OPEN',
+      status: nextStatus,
     },
   })
 
-  await prisma.customerRequest.update({
-    where: { id: lead.requestId },
-    data: { status: matches.length ? 'MATCHED' : 'SUBMITTED' },
-  })
+  // Don't downgrade request if already matched/unlocked flow
+  const nextRequestStatus = matches.length ? 'MATCHED' : 'SUBMITTED'
+  if (lead.request?.status === 'DRAFT' || lead.request?.status === 'SUBMITTED' || lead.request?.status === 'MATCHED') {
+    await prisma.customerRequest.update({
+      where: { id: lead.requestId },
+      data: { status: nextRequestStatus },
+    })
+  }
 
   return matches
 }

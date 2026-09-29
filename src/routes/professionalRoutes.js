@@ -10,6 +10,7 @@ const {
   publicDirectory,
   publicProfile,
   adminAdjustTokens,
+  deleteMyAccount,
 } = require('../controllers/professionalController')
 const { protect, authorize } = require('../middleware/auth')
 
@@ -21,6 +22,7 @@ router.get('/packages', listPackages)
 
 router.get('/me', protect, authorize('PROFESSIONAL'), getProfile)
 router.put('/me', protect, authorize('PROFESSIONAL'), updateProfile)
+router.delete('/me', protect, authorize('PROFESSIONAL'), deleteMyAccount)
 router.put('/me/services', protect, authorize('PROFESSIONAL'), setServices)
 router.put('/me/areas', protect, authorize('PROFESSIONAL'), setServiceAreas)
 router.get('/me/tokens', protect, authorize('PROFESSIONAL'), tokenHistory)

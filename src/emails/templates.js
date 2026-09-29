@@ -191,17 +191,19 @@ const EMAIL_TEMPLATES = [
   },
   {
     key: 'professional_approved',
-    subject: 'Your 123Quotes application has been approved',
+    subject: 'Welcome to 123Quotes',
     bodyHtml: shell({
-      title: 'Application approved',
+      title: 'Welcome to 123Quotes',
       bodyRows: contentCell(`
-        ${h1('You are approved')}
-        ${p('Hi {{name}},')}
-        ${p('Great news — your business application has been approved. You can now log in and start viewing leads.')}
-        ${btn('businessLoginUrl', 'Log in to 123Quotes')}
+        ${h1('Welcome to 123Quotes, {{businessName}}')}
+        ${p('We are excited to work with you.')}
+        ${p('We are excited to work with you, please keep a look out for new leads from customers who are waiting for you to contact them.')}
+        ${p('You can log into your account and manage your leads anytime:')}
+        ${btn('setPasswordUrl', 'Log in to 123Quotes')}
       `),
     }),
-    bodyText: 'Hi {{name}}, your business application has been approved. Log in: {{businessLoginUrl}}',
+    bodyText:
+      'Welcome to 123Quotes, {{businessName}}. We are excited to work with you. Please keep a look out for new leads from customers who are waiting for you to contact them. Log in: {{setPasswordUrl}}',
   },
 ]
 
