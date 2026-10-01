@@ -32,7 +32,9 @@ enum RequestStatus {
 
 enum QuestionType {
   SINGLE_CHOICE
+  SINGLE_CHECKBOX
   MULTIPLE_CHOICE
+  MULTIPLE_RADIO
   DROPDOWN
   TEXT
   TEXTAREA
