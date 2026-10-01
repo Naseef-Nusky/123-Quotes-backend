@@ -5,6 +5,10 @@ const { asyncHandler, ok, fail } = require('../utils/helpers')
 const { matchProfessionalsForLead } = require('../services/matchingService')
 const { sendEmail } = require('../services/emailService')
 const { logActivity } = require('../services/activityService')
+const {
+  getDefaultUnlockTokenCost,
+  resolveLeadTokenCost,
+} = require('../utils/leadPricing')
 
 async function upsertAnswers(requestId, answers) {
   const list = Array.isArray(answers) ? answers : []
@@ -73,6 +77,12 @@ async function finalizeRequest({ requestId, customerUserId, body = {}, ip, isNew
       },
     })
 
+    const defaultCost = await getDefaultUnlockTokenCost()
+    const tokenCost = resolveLeadTokenCost({
+      serviceTokenCost: request.service.tokenCost,
+      defaultCost,
+    })
+
     const lead = await tx.lead.create({
       data: {
         requestId: reqRow.id,
@@ -80,7 +90,7 @@ async function finalizeRequest({ requestId, customerUserId, body = {}, ip, isNew
         postcode: reqRow.postcode,
         city: reqRow.city,
         summary,
-        tokenCost: request.service.tokenCost,
+        tokenCost,
         status: 'OPEN',
       },
     })

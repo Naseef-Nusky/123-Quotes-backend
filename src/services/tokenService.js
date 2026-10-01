@@ -1,5 +1,9 @@
 const prisma = require('../config/db')
 const { sendEmail } = require('./emailService')
+const {
+  getMaxUnlocksPerLead,
+  resolveUnlockCostForLead,
+} = require('../utils/leadPricing')
 
 async function adjustTokens({ professionalId, amount, type, reference, meta }) {
   const professional = await prisma.professionalProfile.findUnique({
@@ -67,7 +71,12 @@ async function unlockLead({ leadId, professionalId }) {
   })
   if (!match) throw new Error('Lead is not matched to this professional')
 
-  const cost = lead.tokenCost || lead.service.tokenCost || 1
+  const maxUnlocks = await getMaxUnlocksPerLead()
+  if (maxUnlocks > 0 && (lead.unlockedCount || 0) >= maxUnlocks) {
+    throw new Error(`This lead has reached the maximum of ${maxUnlocks} unlock(s)`)
+  }
+
+  const cost = await resolveUnlockCostForLead(lead)
 
   await adjustTokens({
     professionalId,

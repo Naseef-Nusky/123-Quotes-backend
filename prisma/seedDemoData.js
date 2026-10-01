@@ -574,6 +574,30 @@ async function seedDemoData(prisma, bcrypt) {
   })
 
   await prisma.setting.upsert({
+    where: { key: 'default_unlock_token_cost' },
+    create: { key: 'default_unlock_token_cost', value: 1 },
+    update: {},
+  })
+
+  await prisma.setting.upsert({
+    where: { key: 'max_unlocks_per_lead' },
+    create: { key: 'max_unlocks_per_lead', value: 0 },
+    update: {},
+  })
+
+  await prisma.setting.upsert({
+    where: { key: 'unlock_token_tiers' },
+    create: {
+      key: 'unlock_token_tiers',
+      value: [
+        { afterViews: 0, tokenCost: 1 },
+        { afterViews: 5, tokenCost: 2 },
+      ],
+    },
+    update: {},
+  })
+
+  await prisma.setting.upsert({
     where: { key: 'contact_info' },
     create: {
       key: 'contact_info',

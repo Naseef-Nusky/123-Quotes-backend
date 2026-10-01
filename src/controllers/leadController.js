@@ -3,15 +3,34 @@ const { asyncHandler, ok, fail } = require('../utils/helpers')
 const { unlockLead } = require('../services/tokenService')
 const { matchProfessionalsForLead } = require('../services/matchingService')
 const { logActivity } = require('../services/activityService')
+const {
+  getMaxUnlocksPerLead,
+  getUnlockTokenTiers,
+  costFromUnlockTiers,
+  getLeadCustomUnlockTiers,
+} = require('../utils/leadPricing')
 
-function sanitizeLead(lead, unlocked) {
+function sanitizeLead(lead, unlocked, extras = {}) {
+  const unlockedCount = lead.unlockedCount || 0
+  const leadTiers = getLeadCustomUnlockTiers(lead)
+  const tiers =
+    leadTiers ||
+    extras.tiers ||
+    [{ fromViews: 0, toViews: null, tokenCost: lead.tokenCost || 1, afterViews: 0 }]
+  const currentUnlockCost = costFromUnlockTiers(unlockedCount, tiers)
   const base = {
     id: lead.id,
     status: lead.status,
     summary: lead.summary,
     postcode: lead.postcode,
     city: lead.city,
-    tokenCost: lead.tokenCost,
+    tokenCost: currentUnlockCost,
+    baseTokenCost: lead.tokenCost,
+    unlockedCount,
+    matchedCount: lead.matchedCount || lead.matches?.length || 0,
+    maxUnlocks: extras.maxUnlocks ?? null,
+    unlockTiers: tiers,
+    hasCustomUnlockTiers: Boolean(leadTiers),
     createdAt: lead.createdAt,
     service: lead.service,
     answers: lead.request?.answers?.map((a) => ({
@@ -51,6 +70,8 @@ const professionalLeads = asyncHandler(async (req, res) => {
   const proId = req.user.professional?.id
   if (!proId) return fail(res, 'Professional profile required', 403)
 
+  const maxUnlocks = await getMaxUnlocksPerLead()
+  const tiers = await getUnlockTokenTiers()
   const matches = await prisma.leadMatch.findMany({
     where: {
       professionalId: proId,
@@ -77,10 +98,13 @@ const professionalLeads = asyncHandler(async (req, res) => {
     matchId: m.id,
     matchStatus: m.status,
     score: m.score,
-    lead: sanitizeLead(m.lead, (m.lead.unlocks?.length || 0) > 0 || m.status === 'UNLOCKED'),
+    lead: sanitizeLead(m.lead, (m.lead.unlocks?.length || 0) > 0 || m.status === 'UNLOCKED', {
+      maxUnlocks,
+      tiers,
+    }),
   }))
 
-  return ok(res, { leads })
+  return ok(res, { leads, maxUnlocksPerLead: maxUnlocks, unlockTokenTiers: tiers })
 })
 
 const unlock = asyncHandler(async (req, res) => {
@@ -110,10 +134,11 @@ const unlock = asyncHandler(async (req, res) => {
       },
     })
 
+    const [maxUnlocks, tiers] = await Promise.all([getMaxUnlocksPerLead(), getUnlockTokenTiers()])
     return ok(res, {
       message: result.alreadyUnlocked ? 'Already unlocked' : 'Lead unlocked',
       tokensSpent: result.cost || 0,
-      lead: sanitizeLead(lead, true),
+      lead: sanitizeLead(lead, true, { maxUnlocks, tiers }),
     })
   } catch (err) {
     return fail(res, err.message, 400)
@@ -199,7 +224,8 @@ const adminUpdateLead = asyncHandler(async (req, res) => {
   })
   if (!lead) return fail(res, 'Lead not found', 404)
 
-  const { firstName, lastName, phone, email, postcode, status, summary, answers } = req.body
+  const { firstName, lastName, phone, email, postcode, status, summary, answers, tokenCost, unlockTiers } =
+    req.body
   const customer = lead.request?.customer
   const userId = customer?.userId
 
@@ -268,6 +294,19 @@ const adminUpdateLead = asyncHandler(async (req, res) => {
           ...(postcode != null ? { postcode } : {}),
           ...(status ? { status } : {}),
           ...(nextSummary != null ? { summary: nextSummary } : {}),
+          ...(tokenCost != null && Number(tokenCost) > 0
+            ? { tokenCost: Math.floor(Number(tokenCost)) }
+            : {}),
+          ...(unlockTiers !== undefined
+            ? {
+                unlockTiers:
+                  unlockTiers === null
+                    ? null
+                    : Array.isArray(unlockTiers) && unlockTiers.length
+                      ? unlockTiers
+                      : null,
+              }
+            : {}),
         },
       })
       if (postcode != null && lead.requestId) {
