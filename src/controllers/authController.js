@@ -13,6 +13,9 @@ const { resolveServiceId } = require('../services/businessApplicationService')
 
 const STAFF_ROLES = ['ADMIN', 'SUPER_ADMIN']
 const AUTH_ROLES = ['CUSTOMER', 'PROFESSIONAL']
+const MIN_PASSWORD_LENGTH = 8
+/** Valid bcrypt hash so failed logins always pay compare cost (timing). */
+const DUMMY_PASSWORD_HASH = bcrypt.hashSync('__timing_dummy__', 10)
 
 function publicUser(user) {
   return {
@@ -158,8 +161,8 @@ const registerProfessional = asyncHandler(async (req, res) => {
   }
 
   // Customer may already exist with this email — create a SEPARATE business user + password
-  if (!password || String(password).length < 6) {
-    return fail(res, 'password must be at least 6 characters')
+  if (!password || String(password).length < MIN_PASSWORD_LENGTH) {
+    return fail(res, `password must be at least ${MIN_PASSWORD_LENGTH} characters`)
   }
 
   const areaPostcode = nationwide ? 'NATIONWIDE' : postcode || null
@@ -245,7 +248,8 @@ const login = asyncHandler(async (req, res) => {
   const { email, password, role: roleRaw } = req.body
   const user = await findUserForLogin(email, roleRaw)
 
-  if (!user || !(await bcrypt.compare(password || '', user.passwordHash))) {
+  const passwordOk = await bcrypt.compare(password || '', user?.passwordHash || DUMMY_PASSWORD_HASH)
+  if (!user || !passwordOk) {
     return fail(res, 'Invalid credentials', 401)
   }
 
@@ -269,12 +273,21 @@ const me = asyncHandler(async (req, res) => ok(res, { user: publicUser(req.user)
 
 const verifyEmail = asyncHandler(async (req, res) => {
   const { token } = req.body
-  const user = await prisma.user.findFirst({ where: { verificationToken: token } })
+  if (!token) return fail(res, 'Invalid verification token', 400)
+  const user = await prisma.user.findFirst({ where: { verificationToken: String(token) } })
   if (!user) return fail(res, 'Invalid verification token', 400)
+
+  // Professionals stay PENDING until admin approval — email verify must not activate them
+  const activate =
+    user.role === 'CUSTOMER' && (user.status === 'PENDING' || user.status === 'INACTIVE')
 
   await prisma.user.update({
     where: { id: user.id },
-    data: { emailVerified: true, status: 'ACTIVE', verificationToken: null },
+    data: {
+      emailVerified: true,
+      verificationToken: null,
+      ...(activate ? { status: 'ACTIVE' } : {}),
+    },
   })
 
   return ok(res, { message: 'Email verified successfully' })
@@ -286,6 +299,8 @@ const forgotPassword = asyncHandler(async (req, res) => {
   const generic = { message: 'If that email exists, a reset link was sent' }
   const user = await findUserByEmailRole(email, role, null)
   if (!user) return ok(res, generic)
+  if (user.status === 'SUSPENDED' || user.status === 'INACTIVE') return ok(res, generic)
+  if (user.role === 'PROFESSIONAL' && user.status === 'PENDING') return ok(res, generic)
 
   const resetToken = randomToken()
   await prisma.user.update({
@@ -319,7 +334,9 @@ const requestLoginLink = asyncHandler(async (req, res) => {
 
   const generic = { message: 'If that email exists, a login link was sent' }
   if (!user) return ok(res, generic)
-  if (user.status === 'SUSPENDED') return ok(res, generic)
+  if (user.status === 'SUSPENDED' || user.status === 'INACTIVE') return ok(res, generic)
+  // Do not email magic links to professionals awaiting admin approval
+  if (user.role === 'PROFESSIONAL' && user.status === 'PENDING') return ok(res, generic)
 
   const loginToken = `login_${randomToken()}`
   await prisma.user.update({
@@ -362,6 +379,15 @@ const loginWithLink = asyncHandler(async (req, res) => {
   })
   if (!user) return fail(res, 'Invalid or expired login link', 400)
   if (user.status === 'SUSPENDED') return fail(res, 'Account suspended', 403)
+  if (user.status === 'INACTIVE') return fail(res, 'Account is inactive', 403)
+  // Professionals pending admin review must not skip approval via magic link
+  if (user.role === 'PROFESSIONAL' && user.status === 'PENDING') {
+    return fail(
+      res,
+      'Your application is still under review. We will email you when it is approved.',
+      403,
+    )
+  }
 
   const updated = await prisma.user.update({
     where: { id: user.id },
@@ -370,7 +396,8 @@ const loginWithLink = asyncHandler(async (req, res) => {
       resetTokenExpiry: null,
       lastLoginAt: new Date(),
       emailVerified: true,
-      status: user.status === 'PENDING' ? 'ACTIVE' : user.status,
+      // Customers may activate via login link; never auto-approve professionals
+      ...(user.role === 'CUSTOMER' && user.status === 'PENDING' ? { status: 'ACTIVE' } : {}),
     },
     include: { customer: true, professional: true },
   })
@@ -383,7 +410,9 @@ const loginWithLink = asyncHandler(async (req, res) => {
 const resetPassword = asyncHandler(async (req, res) => {
   const { token, password } = req.body
   if (!token || !password) return fail(res, 'token and password are required')
-  if (String(password).length < 6) return fail(res, 'password must be at least 6 characters')
+  if (String(password).length < MIN_PASSWORD_LENGTH) {
+    return fail(res, `password must be at least ${MIN_PASSWORD_LENGTH} characters`)
+  }
   if (String(token).startsWith('login_')) return fail(res, 'Invalid or expired reset token')
 
   const user = await prisma.user.findFirst({
@@ -391,6 +420,13 @@ const resetPassword = asyncHandler(async (req, res) => {
     include: { customer: true, professional: true },
   })
   if (!user) return fail(res, 'Invalid or expired reset token')
+  if (user.role === 'PROFESSIONAL' && user.status === 'PENDING') {
+    return fail(
+      res,
+      'Your application is still under review. We will email you when it is approved.',
+      403,
+    )
+  }
 
   const updated = await prisma.user.update({
     where: { id: user.id },
@@ -399,7 +435,7 @@ const resetPassword = asyncHandler(async (req, res) => {
       resetToken: null,
       resetTokenExpiry: null,
       emailVerified: true,
-      status: user.status === 'PENDING' ? 'ACTIVE' : user.status,
+      ...(user.role === 'CUSTOMER' && user.status === 'PENDING' ? { status: 'ACTIVE' } : {}),
     },
     include: { customer: true, professional: true },
   })

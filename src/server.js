@@ -25,6 +25,10 @@ const allowedOrigins = (process.env.CLIENT_ORIGIN || '')
 app.use(
   cors({
     origin(origin, callback) {
+      // In production, require an explicit allow-list
+      if (process.env.NODE_ENV === 'production' && allowedOrigins.length === 0) {
+        return callback(new Error('CLIENT_ORIGIN is not configured'))
+      }
       if (!origin || allowedOrigins.length === 0 || allowedOrigins.includes(origin)) {
         return callback(null, true)
       }
@@ -34,6 +38,11 @@ app.use(
 )
 app.use(express.json({ limit: '2mb' }))
 app.use(morgan('dev'))
+
+// Accurate client IP behind reverse proxies (needed for auth rate limits)
+if (process.env.NODE_ENV === 'production' || process.env.TRUST_PROXY === '1') {
+  app.set('trust proxy', 1)
+}
 
 app.get('/api/health', (_req, res) => {
   res.json({

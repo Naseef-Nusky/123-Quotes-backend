@@ -157,7 +157,7 @@ const createAdmin = asyncHandler(async (req, res) => {
 
   const { email, password, name, firstName, lastName, status, role } = req.body
   if (!email || !password) return fail(res, 'email and password are required')
-  if (String(password).length < 6) return fail(res, 'password must be at least 6 characters')
+  if (String(password).length < 8) return fail(res, 'password must be at least 8 characters')
 
   const nextRole = role === 'SUPER_ADMIN' ? 'SUPER_ADMIN' : 'ADMIN'
 
@@ -238,7 +238,7 @@ const updateSystemUser = asyncHandler(async (req, res) => {
   if (role) data.role = role
   if (typeof emailVerified === 'boolean') data.emailVerified = emailVerified
   if (password) {
-    if (String(password).length < 6) return fail(res, 'password must be at least 6 characters')
+    if (String(password).length < 8) return fail(res, 'password must be at least 8 characters')
     data.passwordHash = await bcrypt.hash(password, 10)
   }
 
@@ -463,7 +463,7 @@ const updateProfessional = asyncHandler(async (req, res) => {
   if (email) userData.email = email.toLowerCase().trim()
   if (status) userData.status = status
   if (password) {
-    if (String(password).length < 6) return fail(res, 'password must be at least 6 characters')
+    if (String(password).length < 8) return fail(res, 'password must be at least 8 characters')
     userData.passwordHash = await bcrypt.hash(password, 10)
   }
 
@@ -549,7 +549,7 @@ const updateCustomer = asyncHandler(async (req, res) => {
   if (email) data.email = email.toLowerCase().trim()
   if (status) data.status = status
   if (password) {
-    if (String(password).length < 6) return fail(res, 'password must be at least 6 characters')
+    if (String(password).length < 8) return fail(res, 'password must be at least 8 characters')
     data.passwordHash = await bcrypt.hash(password, 10)
   }
 
@@ -582,7 +582,7 @@ const createCustomer = asyncHandler(async (req, res) => {
   if (!email || !password || !firstName) {
     return fail(res, 'email, password and firstName are required')
   }
-  if (String(password).length < 6) return fail(res, 'password must be at least 6 characters')
+  if (String(password).length < 8) return fail(res, 'password must be at least 8 characters')
 
   const emailNorm = String(email).toLowerCase().trim()
   const exists = await prisma.user.findUnique({
@@ -636,7 +636,7 @@ const createProfessional = asyncHandler(async (req, res) => {
   if (!email || !password || !contactName) {
     return fail(res, 'email, password and contactName are required')
   }
-  if (String(password).length < 6) return fail(res, 'password must be at least 6 characters')
+  if (String(password).length < 8) return fail(res, 'password must be at least 8 characters')
 
   const emailNorm = String(email).toLowerCase().trim()
   const exists = await prisma.user.findUnique({

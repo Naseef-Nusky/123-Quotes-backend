@@ -3,20 +3,29 @@ const prisma = require('../config/db')
 const { fail } = require('../utils/helpers')
 
 function signToken(user) {
+  const secret = process.env.JWT_SECRET
+  if (!secret || secret === 'change_me_to_a_long_random_secret' || secret.length < 16) {
+    throw new Error('JWT_SECRET is missing or too weak')
+  }
   return jwt.sign(
     { id: user.id, role: user.role, email: user.email },
-    process.env.JWT_SECRET,
+    secret,
     { expiresIn: process.env.JWT_EXPIRES_IN || '7d' },
   )
 }
 
 async function protect(req, res, next) {
   try {
+    const secret = process.env.JWT_SECRET
+    if (!secret || secret === 'change_me_to_a_long_random_secret' || secret.length < 16) {
+      return fail(res, 'Server auth misconfigured', 500)
+    }
+
     const header = req.headers.authorization || ''
     const token = header.startsWith('Bearer ') ? header.slice(7) : null
     if (!token) return fail(res, 'Not authorized', 401)
 
-    const decoded = jwt.verify(token, process.env.JWT_SECRET)
+    const decoded = jwt.verify(token, secret)
     const isStaffUser = decoded.role === 'ADMIN' || decoded.role === 'SUPER_ADMIN'
 
     // Staff CRM calls don't need customer/professional joins (saves remote-DB latency)
@@ -29,6 +38,11 @@ async function protect(req, res, next) {
 
     if (!user || user.status === 'SUSPENDED' || user.status === 'INACTIVE') {
       return fail(res, 'Account not available', 401)
+    }
+
+    // Reject tokens issued for a different role than the DB user (tamper / stale)
+    if (decoded.role && decoded.role !== user.role) {
+      return fail(res, 'Invalid or expired token', 401)
     }
 
     req.user = user
