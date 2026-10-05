@@ -320,10 +320,10 @@ async function seedDemoData(prisma, bcrypt) {
   await ensureExtraCategories(prisma)
 
   const packages = [
-    { name: '100 Points', tokens: 100, priceCents: 2500, description: '100 points to unlock leads', sortOrder: 1 },
-    { name: '200 Points', tokens: 200, priceCents: 4500, description: '200 points – good for regular outreach', sortOrder: 2 },
-    { name: '500 Points', tokens: 500, priceCents: 9900, description: '500 points – best value for active pros', sortOrder: 3 },
-    { name: '1000 Points', tokens: 1000, priceCents: 17900, description: '1000 points for high-volume teams', sortOrder: 4 },
+    { name: '100 Tokens', tokens: 100, priceCents: 2500, description: '100 tokens to unlock leads', sortOrder: 1 },
+    { name: '200 Tokens', tokens: 200, priceCents: 4500, description: '200 tokens – good for regular outreach', sortOrder: 2 },
+    { name: '500 Tokens', tokens: 500, priceCents: 9900, description: '500 tokens – best value for active pros', sortOrder: 3 },
+    { name: '1000 Tokens', tokens: 1000, priceCents: 17900, description: '1000 tokens for high-volume teams', sortOrder: 4 },
   ]
   for (const pkg of packages) {
     const existing = await prisma.tokenPackage.findFirst({ where: { name: pkg.name } })

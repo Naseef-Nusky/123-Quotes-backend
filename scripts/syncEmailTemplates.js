@@ -26,7 +26,7 @@ const SAMPLE_VARS = {
   customerEmail: 'customer@example.com',
   customerPhone: '+44 7700 900123',
   tokens: '100',
-  packageName: '100 Points',
+  packageName: '100 Tokens',
   balance: '2',
   businessName: 'Prime Heat Engineers',
   setPasswordUrl: 'https://example.com/set-password?token=preview&audience=business',

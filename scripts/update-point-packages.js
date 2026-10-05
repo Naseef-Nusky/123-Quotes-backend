@@ -4,10 +4,10 @@ const { PrismaClient } = require('@prisma/client')
 const prisma = new PrismaClient()
 
 const packages = [
-  { name: '100 Points', description: '100 points to unlock leads', tokens: 100, priceCents: 2500, sortOrder: 1 },
-  { name: '200 Points', description: '200 points – good for regular outreach', tokens: 200, priceCents: 4500, sortOrder: 2 },
-  { name: '500 Points', description: '500 points – best value for active pros', tokens: 500, priceCents: 9900, sortOrder: 3 },
-  { name: '1000 Points', description: '1000 points for high-volume teams', tokens: 1000, priceCents: 17900, sortOrder: 4 },
+  { name: '100 Tokens', description: '100 tokens to unlock leads', tokens: 100, priceCents: 2500, sortOrder: 1 },
+  { name: '200 Tokens', description: '200 tokens – good for regular outreach', tokens: 200, priceCents: 4500, sortOrder: 2 },
+  { name: '500 Tokens', description: '500 tokens – best value for active pros', tokens: 500, priceCents: 9900, sortOrder: 3 },
+  { name: '1000 Tokens', description: '1000 tokens for high-volume teams', tokens: 1000, priceCents: 17900, sortOrder: 4 },
 ]
 
 async function main() {
