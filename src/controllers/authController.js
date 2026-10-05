@@ -245,11 +245,18 @@ const registerProfessional = asyncHandler(async (req, res) => {
 })
 
 const login = asyncHandler(async (req, res) => {
-  const { email, password, role: roleRaw } = req.body
+  const email = String(req.body?.email || '').trim()
+  const password = String(req.body?.password || '')
+  const roleRaw = req.body?.role
   const user = await findUserForLogin(email, roleRaw)
 
-  const passwordOk = await bcrypt.compare(password || '', user?.passwordHash || DUMMY_PASSWORD_HASH)
+  const passwordOk = await bcrypt.compare(password, user?.passwordHash || DUMMY_PASSWORD_HASH)
   if (!user || !passwordOk) {
+    if (process.env.NODE_ENV !== 'production') {
+      console.warn(
+        `[auth.login] 401 email=${email || '(empty)'} role=${roleRaw || '(none)'} found=${Boolean(user)}`,
+      )
+    }
     return fail(res, 'Invalid credentials', 401)
   }
 
