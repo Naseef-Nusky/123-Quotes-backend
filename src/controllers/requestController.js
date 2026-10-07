@@ -217,6 +217,90 @@ const saveAnswers = asyncHandler(async (req, res) => {
   return ok(res, { request: updated })
 })
 
+/** Customer: edit request details. Service type cannot be changed. */
+const updateMyRequest = asyncHandler(async (req, res) => {
+  const request = await prisma.customerRequest.findUnique({
+    where: { id: req.params.id },
+    include: {
+      answers: { include: { question: true } },
+      lead: { select: { id: true } },
+    },
+  })
+  if (!request || request.customerId !== req.user.customer?.id) {
+    return fail(res, 'Request not found', 404)
+  }
+  if (!['DRAFT', 'SUBMITTED'].includes(request.status)) {
+    return fail(res, 'This request can no longer be edited', 400)
+  }
+
+  // Service is locked once the request exists
+  if (req.body.serviceId && req.body.serviceId !== request.serviceId) {
+    return fail(res, 'Requested service cannot be changed', 400)
+  }
+
+  const { postcode, city, address, description, answers } = req.body
+  const data = {}
+  if (postcode != null) {
+    const next = String(postcode).trim()
+    if (!next) return fail(res, 'postcode is required')
+    data.postcode = next
+  }
+  if (city !== undefined) data.city = city ? String(city).trim() : null
+  if (address !== undefined) data.address = address ? String(address).trim() : null
+  if (description !== undefined) data.description = description ? String(description).trim() : null
+
+  if (Array.isArray(answers)) {
+    await upsertAnswers(request.id, answers)
+  }
+
+  await prisma.customerRequest.update({
+    where: { id: request.id },
+    data,
+  })
+
+  if (request.lead?.id) {
+    const refreshed = await prisma.customerRequest.findUnique({
+      where: { id: request.id },
+      include: { answers: { include: { question: true } } },
+    })
+    const summary = (refreshed?.answers || [])
+      .map((a) => String(a.value ?? '').trim())
+      .filter(Boolean)
+      .join(' / ')
+    await prisma.lead.update({
+      where: { id: request.lead.id },
+      data: {
+        ...(data.postcode != null ? { postcode: data.postcode } : {}),
+        ...(summary ? { summary } : {}),
+      },
+    })
+  }
+
+  const updated = await prisma.customerRequest.findUnique({
+    where: { id: request.id },
+    include: {
+      service: true,
+      answers: { include: { question: { include: { options: true } } } },
+      lead: {
+        include: {
+          matches: {
+            include: { professional: { select: { id: true, companyName: true, city: true } } },
+          },
+          unlocks: {
+            include: {
+              professional: {
+                select: { id: true, companyName: true, contactName: true, phone: true },
+              },
+            },
+          },
+        },
+      },
+    },
+  })
+
+  return ok(res, { request: updated })
+})
+
 const submitRequest = asyncHandler(async (req, res) => {
   const request = await prisma.customerRequest.findUnique({
     where: { id: req.params.id },
@@ -369,7 +453,7 @@ const getRequest = asyncHandler(async (req, res) => {
     where: { id: req.params.id },
     include: {
       service: true,
-      answers: { include: { question: true } },
+      answers: { include: { question: { include: { options: true } } } },
       lead: {
         include: {
           matches: { include: { professional: { select: { id: true, companyName: true, city: true } } } },
@@ -427,6 +511,7 @@ const deleteRequest = asyncHandler(async (req, res) => {
 module.exports = {
   createDraft,
   saveAnswers,
+  updateMyRequest,
   submitRequest,
   submitGuestRequest,
   myRequests,

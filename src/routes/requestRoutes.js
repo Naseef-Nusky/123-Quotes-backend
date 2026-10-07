@@ -2,6 +2,7 @@ const express = require('express')
 const {
   createDraft,
   saveAnswers,
+  updateMyRequest,
   submitRequest,
   submitGuestRequest,
   myRequests,
@@ -20,6 +21,7 @@ router.get('/mine', protect, authorize('CUSTOMER'), myRequests)
 router.get('/admin/all', protect, authorize('ADMIN'), adminListRequests)
 router.patch('/admin/:id/status', protect, authorize('ADMIN'), adminUpdateRequestStatus)
 router.get('/:id', protect, getRequest)
+router.put('/:id', protect, authorize('CUSTOMER'), updateMyRequest)
 router.delete('/:id', protect, authorize('CUSTOMER'), deleteRequest)
 router.put('/:id/answers', protect, authorize('CUSTOMER'), saveAnswers)
 router.post('/:id/submit', protect, authorize('CUSTOMER'), submitRequest)
