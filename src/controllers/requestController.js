@@ -9,6 +9,7 @@ const {
   getDefaultUnlockTokenCost,
   resolveLeadTokenCost,
 } = require('../utils/leadPricing')
+const { formatAnswerValue } = require('../utils/formatAnswer')
 
 async function upsertAnswers(requestId, answers) {
   const list = Array.isArray(answers) ? answers : []
@@ -37,7 +38,7 @@ async function finalizeRequest({ requestId, customerUserId, body = {}, ip, isNew
   const request = await prisma.customerRequest.findUnique({
     where: { id: requestId },
     include: {
-      answers: { include: { question: true } },
+      answers: { include: { question: { include: { options: true } } } },
       service: true,
       customer: { include: { user: true } },
     },
@@ -61,7 +62,7 @@ async function finalizeRequest({ requestId, customerUserId, body = {}, ip, isNew
 
   const summary = request.answers
     .slice(0, 5)
-    .map((a) => `${a.question.label}: ${a.value}`)
+    .map((a) => `${a.question.label}: ${formatAnswerValue(a.value, a.question?.options || [])}`)
     .join(' | ')
 
   const updated = await prisma.$transaction(async (tx) => {
@@ -261,10 +262,10 @@ const updateMyRequest = asyncHandler(async (req, res) => {
   if (request.lead?.id) {
     const refreshed = await prisma.customerRequest.findUnique({
       where: { id: request.id },
-      include: { answers: { include: { question: true } } },
+      include: { answers: { include: { question: { include: { options: true } } } } },
     })
     const summary = (refreshed?.answers || [])
-      .map((a) => String(a.value ?? '').trim())
+      .map((a) => formatAnswerValue(a.value, a.question?.options || []))
       .filter(Boolean)
       .join(' / ')
     await prisma.lead.update({
@@ -431,7 +432,7 @@ const myRequests = asyncHandler(async (req, res) => {
     where: { customerId: req.user.customer.id },
     include: {
       service: true,
-      answers: { include: { question: true } },
+      answers: { include: { question: { include: { options: true } } } },
       lead: {
         include: {
           unlocks: {
@@ -445,7 +446,16 @@ const myRequests = asyncHandler(async (req, res) => {
     },
     orderBy: { createdAt: 'desc' },
   })
-  return ok(res, { requests })
+  const formatted = requests.map((r) => ({
+    ...r,
+    answers: (r.answers || []).map((a) => ({
+      ...a,
+      displayValue: formatAnswerValue(a.value, a.question?.options || []),
+      value: formatAnswerValue(a.value, a.question?.options || []),
+      rawValue: a.value,
+    })),
+  }))
+  return ok(res, { requests: formatted })
 })
 
 const getRequest = asyncHandler(async (req, res) => {
@@ -470,7 +480,17 @@ const getRequest = asyncHandler(async (req, res) => {
     return fail(res, 'Forbidden', 403)
   }
 
-  return ok(res, { request })
+  const formatted = {
+    ...request,
+    answers: (request.answers || []).map((a) => ({
+      ...a,
+      displayValue: formatAnswerValue(a.value, a.question?.options || []),
+      value: formatAnswerValue(a.value, a.question?.options || []),
+      rawValue: a.value,
+    })),
+  }
+
+  return ok(res, { request: formatted })
 })
 
 const adminListRequests = asyncHandler(async (req, res) => {

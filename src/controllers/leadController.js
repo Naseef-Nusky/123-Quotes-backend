@@ -9,6 +9,7 @@ const {
   costFromUnlockTiers,
   getLeadCustomUnlockTiers,
 } = require('../utils/leadPricing')
+const { formatAnswerValue } = require('../utils/formatAnswer')
 
 function sanitizeLead(lead, unlocked, extras = {}) {
   const unlockedCount = lead.unlockedCount || 0
@@ -34,8 +35,9 @@ function sanitizeLead(lead, unlocked, extras = {}) {
     createdAt: lead.createdAt,
     service: lead.service,
     answers: lead.request?.answers?.map((a) => ({
-      question: a.question.label,
-      value: a.value,
+      question: a.question?.label || 'Question',
+      value: formatAnswerValue(a.value, a.question?.options || []),
+      rawValue: a.value,
     })),
   }
 
@@ -282,8 +284,16 @@ const adminUpdateLead = asyncHandler(async (req, res) => {
 
       let nextSummary = summary
       if (Array.isArray(answers) && answers.length) {
+        const questionIds = answers.map((a) => a.questionId).filter(Boolean)
+        const questions = questionIds.length
+          ? await tx.question.findMany({
+              where: { id: { in: questionIds } },
+              include: { options: true },
+            })
+          : []
+        const byId = new Map(questions.map((q) => [q.id, q]))
         nextSummary = answers
-          .map((a) => String(a.value ?? '').trim())
+          .map((a) => formatAnswerValue(a.value, byId.get(a.questionId)?.options || []))
           .filter(Boolean)
           .join(' / ')
       }
