@@ -198,6 +198,14 @@ const decline = asyncHandler(async (req, res) => {
   return ok(res, { message: 'Lead declined', match: updated })
 })
 
+function outcodeFromPostcode(postcode) {
+  const clean = String(postcode || '').replace(/\s+/g, '').toUpperCase()
+  if (!clean || clean === 'UK' || clean.length < 2) return null
+  // Full postcode: drop the 3-char incode; already an outcode: keep as-is.
+  const candidate = clean.length > 3 ? clean.slice(0, -3) : clean
+  return /^[A-Z]{1,2}\d[A-Z\d]?$/.test(candidate) ? candidate : candidate || null
+}
+
 const adminListLeads = asyncHandler(async (_req, res) => {
   const leads = await prisma.lead.findMany({
     include: {
@@ -210,7 +218,37 @@ const adminListLeads = asyncHandler(async (_req, res) => {
     },
     orderBy: { createdAt: 'desc' },
   })
-  return ok(res, { leads })
+
+  // Enrich with old-DB postal_codes data (district/ward/Country/lat/lng),
+  // aggregated per outcode in UkOutcode: town=district, region=ward.
+  const outcodes = [
+    ...new Set(leads.map((l) => outcodeFromPostcode(l.postcode)).filter(Boolean)),
+  ]
+  const outcodeRows = outcodes.length
+    ? await prisma.ukOutcode.findMany({ where: { outcode: { in: outcodes } } })
+    : []
+  const byOutcode = new Map(outcodeRows.map((r) => [r.outcode, r]))
+
+  const enriched = leads.map((lead) => {
+    const outcode = outcodeFromPostcode(lead.postcode)
+    const info = outcode ? byOutcode.get(outcode) : null
+    return {
+      ...lead,
+      postcodeInfo: info
+        ? {
+            outcode: info.outcode,
+            fullPostcode: lead.postcode || null,
+            district: info.town || null,
+            ward: info.region || null,
+            country: info.country || null,
+          }
+        : outcode
+          ? { outcode, fullPostcode: lead.postcode || null }
+          : null,
+    }
+  })
+
+  return ok(res, { leads: enriched })
 })
 
 const adminDeleteLead = asyncHandler(async (req, res) => {
