@@ -28,6 +28,16 @@ const {
   listBusinessApplications,
   approveBusinessApplication,
   declineBusinessApplication,
+  deleteAllLeads,
+  deleteAllCustomers,
+  deleteAllProfessionals,
+  deleteAllPayments,
+  deleteAllBusinessApplications,
+  deleteAllPackages,
+  deleteAllCategories,
+  deleteAllPostcodes,
+  deleteAllSystemUsers,
+  deleteAllCategoryErrors,
 } = require('../controllers/adminController')
 const { protect, authorize } = require('../middleware/auth')
 
@@ -36,6 +46,18 @@ const router = express.Router()
 router.use(protect, authorize('ADMIN'))
 
 router.get('/dashboard', dashboard)
+
+// Permanent bulk deletes
+router.delete('/leads/all', deleteAllLeads)
+router.delete('/customers/all', deleteAllCustomers)
+router.delete('/professionals/all', deleteAllProfessionals)
+router.delete('/payments/all', deleteAllPayments)
+router.delete('/business-applications/all', deleteAllBusinessApplications)
+router.delete('/packages/all', deleteAllPackages)
+router.delete('/categories/all', deleteAllCategories)
+router.delete('/postcodes/all', deleteAllPostcodes)
+router.delete('/users/all', deleteAllSystemUsers)
+router.delete('/category-errors/all', deleteAllCategoryErrors)
 router.get('/notifications', listNotifications)
 router.patch('/notifications/read-all', markAllNotificationsRead)
 router.patch('/notifications/:id/read', markNotificationRead)

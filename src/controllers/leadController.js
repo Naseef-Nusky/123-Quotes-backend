@@ -10,6 +10,7 @@ const {
   getLeadCustomUnlockTiers,
 } = require('../utils/leadPricing')
 const { formatAnswerValue } = require('../utils/formatAnswer')
+const { publicAttachmentShape } = require('../services/attachmentService')
 
 function sanitizeLead(lead, unlocked, extras = {}) {
   const unlockedCount = lead.unlockedCount || 0
@@ -19,6 +20,7 @@ function sanitizeLead(lead, unlocked, extras = {}) {
     extras.tiers ||
     [{ fromViews: 0, toViews: null, tokenCost: lead.tokenCost || 1, afterViews: 0 }]
   const currentUnlockCost = costFromUnlockTiers(unlockedCount, tiers)
+  const attachmentRows = lead.request?.attachments || []
   const base = {
     id: lead.id,
     status: lead.status,
@@ -39,12 +41,14 @@ function sanitizeLead(lead, unlocked, extras = {}) {
       value: formatAnswerValue(a.value, a.question?.options || []),
       rawValue: a.value,
     })),
+    attachmentCount: attachmentRows.length,
   }
 
   if (!unlocked) {
     return {
       ...base,
       contactLocked: true,
+      attachments: [],
       customer: {
         firstName: lead.request?.customer?.firstName?.[0] + '.',
         city: lead.request?.customer?.city || lead.city,
@@ -53,19 +57,32 @@ function sanitizeLead(lead, unlocked, extras = {}) {
     }
   }
 
+  const customer = lead.request?.customer
+  const contactName = String(lead.request?.contactName || '').trim()
+  const contactEmail = lead.request?.contactEmail || customer?.user?.email || null
+  const contactPhone = lead.request?.contactPhone || customer?.phone || null
+  const nameParts = contactName ? contactName.split(/\s+/) : []
   return {
     ...base,
     contactLocked: false,
+    attachments: attachmentRows.map(publicAttachmentShape),
     customer: {
-      firstName: lead.request.customer.firstName,
-      lastName: lead.request.customer.lastName,
-      email: lead.request.customer.user.email,
-      phone: lead.request.customer.phone,
-      postcode: lead.request.customer.postcode || lead.postcode,
-      address: lead.request.customer.address,
-      city: lead.request.customer.city || lead.city,
+      firstName: customer?.firstName || nameParts[0] || 'Legacy',
+      lastName: customer?.lastName || nameParts.slice(1).join(' ') || 'Lead',
+      email: contactEmail,
+      phone: contactPhone,
+      postcode: customer?.postcode || lead.postcode,
+      address: customer?.address || null,
+      city: customer?.city || lead.city,
+      legacyUserId: lead.request?.legacyUserId ?? null,
     },
   }
+}
+
+const requestIncludeForLead = {
+  customer: { include: { user: true } },
+  answers: { include: { question: { include: { options: true } } } },
+  attachments: { orderBy: { createdAt: 'asc' } },
 }
 
 const professionalLeads = asyncHandler(async (req, res) => {
@@ -85,10 +102,7 @@ const professionalLeads = asyncHandler(async (req, res) => {
           service: true,
           unlocks: { where: { professionalId: proId } },
           request: {
-            include: {
-              customer: { include: { user: true } },
-              answers: { include: { question: { include: { options: true } } } },
-            },
+            include: requestIncludeForLead,
           },
         },
       },
@@ -128,10 +142,7 @@ const unlock = asyncHandler(async (req, res) => {
       include: {
         service: true,
         request: {
-          include: {
-            customer: { include: { user: true } },
-            answers: { include: { question: { include: { options: true } } } },
-          },
+          include: requestIncludeForLead,
         },
       },
     })
@@ -192,10 +203,7 @@ const adminListLeads = asyncHandler(async (_req, res) => {
     include: {
       service: true,
       request: {
-        include: {
-          customer: { include: { user: true } },
-          answers: { include: { question: { include: { options: true } } } },
-        },
+        include: requestIncludeForLead,
       },
       matches: { include: { professional: true } },
       unlocks: true,
@@ -217,10 +225,7 @@ const adminUpdateLead = asyncHandler(async (req, res) => {
     where: { id: req.params.id },
     include: {
       request: {
-        include: {
-          customer: { include: { user: true } },
-          answers: { include: { question: { include: { options: true } } } },
-        },
+        include: requestIncludeForLead,
       },
     },
   })
@@ -228,35 +233,98 @@ const adminUpdateLead = asyncHandler(async (req, res) => {
 
   const { firstName, lastName, phone, email, postcode, status, summary, answers, tokenCost, unlockTiers } =
     req.body
-  const customer = lead.request?.customer
-  const userId = customer?.userId
+  let customer = lead.request?.customer
+  let userId = customer?.userId
 
   try {
     await prisma.$transaction(async (tx) => {
+      const nextEmail = email != null ? String(email).toLowerCase().trim() : ''
+      const nextPhone = phone != null ? String(phone).trim() : ''
+      const nextFirst = firstName != null ? String(firstName).trim() : ''
+      const nextLast = lastName != null ? String(lastName).trim() : ''
+
+      // Create customer account when lead has no linked user but admin provides contact
+      if (!customer && nextEmail && nextEmail.includes('@')) {
+        const taken = await tx.user.findUnique({
+          where: { email_role: { email: nextEmail, role: 'CUSTOMER' } },
+          include: { customer: true },
+        })
+        if (taken?.customer) {
+          customer = taken.customer
+          userId = taken.id
+          await tx.customerRequest.update({
+            where: { id: lead.requestId },
+            data: { customerId: customer.id },
+          })
+        } else if (!taken) {
+          const bcrypt = require('bcryptjs')
+          const created = await tx.user.create({
+            data: {
+              email: nextEmail,
+              passwordHash: await bcrypt.hash(require('crypto').randomBytes(16).toString('hex'), 8),
+              role: 'CUSTOMER',
+              status: 'ACTIVE',
+              emailVerified: true,
+              customer: {
+                create: {
+                  firstName: nextFirst || 'Lead',
+                  lastName: nextLast || 'Contact',
+                  phone: nextPhone || null,
+                  postcode: postcode != null ? String(postcode).trim() : lead.postcode,
+                },
+              },
+            },
+            include: { customer: true },
+          })
+          customer = created.customer
+          userId = created.id
+          await tx.customerRequest.update({
+            where: { id: lead.requestId },
+            data: { customerId: customer.id },
+          })
+        }
+      }
+
       if (customer) {
         await tx.customerProfile.update({
           where: { id: customer.id },
           data: {
-            ...(firstName != null ? { firstName } : {}),
-            ...(lastName != null ? { lastName } : {}),
-            ...(phone != null ? { phone } : {}),
-            ...(postcode != null ? { postcode } : {}),
+            ...(firstName != null ? { firstName: nextFirst || customer.firstName } : {}),
+            ...(lastName != null ? { lastName: nextLast || customer.lastName } : {}),
+            ...(phone != null ? { phone: nextPhone || null } : {}),
+            ...(postcode != null ? { postcode: String(postcode).trim() } : {}),
           },
         })
       }
-      if (userId && email) {
-        const nextEmail = String(email).toLowerCase().trim()
-        if (nextEmail !== customer.user?.email) {
+      if (userId && nextEmail) {
+        const currentEmail = customer?.user?.email
+        if (nextEmail !== currentEmail) {
           const taken = await tx.user.findUnique({
             where: { email_role: { email: nextEmail, role: 'CUSTOMER' } },
           })
-          if (taken) {
+          if (taken && taken.id !== userId) {
             const err = new Error('Email already in use')
             err.status = 409
             throw err
           }
           await tx.user.update({ where: { id: userId }, data: { email: nextEmail } })
         }
+      }
+
+      // Keep denormalized contact on the request for list/detail views
+      if (lead.requestId) {
+        await tx.customerRequest.update({
+          where: { id: lead.requestId },
+          data: {
+            ...(firstName != null || lastName != null
+              ? {
+                  contactName: `${nextFirst || customer?.firstName || ''} ${nextLast || customer?.lastName || ''}`.trim() || null,
+                }
+              : {}),
+            ...(email != null ? { contactEmail: nextEmail || null } : {}),
+            ...(phone != null ? { contactPhone: nextPhone || null } : {}),
+          },
+        })
       }
 
       if (Array.isArray(answers) && lead.requestId) {
@@ -335,10 +403,7 @@ const adminUpdateLead = asyncHandler(async (req, res) => {
     include: {
       service: true,
       request: {
-        include: {
-          customer: { include: { user: true } },
-          answers: { include: { question: { include: { options: true } } } },
-        },
+        include: requestIncludeForLead,
       },
       matches: { include: { professional: true } },
       unlocks: true,

@@ -353,12 +353,15 @@ const upsertPackage = asyncHandler(async (req, res) => {
 
 const listPayments = asyncHandler(async (req, res) => {
   const type = String(req.query.type || '').toLowerCase()
-  const where = { provider: 'square' }
+  // Include Square + legacy dump orders (no stub users — may have null userId)
+  const where = {
+    provider: { in: ['square', 'legacy-import'] },
+  }
 
   if (type === 'purchases' || type === 'purchase') {
-    where.packageId = { not: null }
+    where.OR = [{ packageId: { not: null } }, { provider: 'legacy-import' }]
+    delete where.provider
   }
-  // type === 'square' / 'all' / 'recent' / 'online' → all Square payments
 
   const payments = await prisma.payment.findMany({
     where,
@@ -372,9 +375,9 @@ const listPayments = asyncHandler(async (req, res) => {
       package: true,
     },
     orderBy: { createdAt: 'desc' },
-    take: 200,
+    take: 500,
   })
-  return ok(res, { payments, type: type || 'square', provider: 'square' })
+  return ok(res, { payments, type: type || 'all' })
 })
 
 const listActivity = asyncHandler(async (_req, res) => {
@@ -903,6 +906,108 @@ const declineBusinessApplication = asyncHandler(async (req, res) => {
   return ok(res, { application: updated })
 })
 
+/** Permanently delete ALL leads (and their customer requests). */
+const deleteAllLeads = asyncHandler(async (_req, res) => {
+  const result = await prisma.customerRequest.deleteMany({})
+  return ok(res, { deleted: true, count: result.count, entity: 'leads' })
+})
+
+/** Permanently delete ALL customer accounts. */
+const deleteAllCustomers = asyncHandler(async (_req, res) => {
+  const users = await prisma.user.findMany({
+    where: { role: 'CUSTOMER' },
+    select: { id: true },
+  })
+  const ids = users.map((u) => u.id)
+  if (ids.length) {
+    await prisma.payment.deleteMany({ where: { userId: { in: ids } } })
+    await prisma.user.deleteMany({ where: { id: { in: ids } } })
+  }
+  return ok(res, { deleted: true, count: ids.length, entity: 'customers' })
+})
+
+/** Permanently delete ALL professional accounts. */
+const deleteAllProfessionals = asyncHandler(async (_req, res) => {
+  const users = await prisma.user.findMany({
+    where: { role: 'PROFESSIONAL' },
+    select: { id: true },
+  })
+  const ids = users.map((u) => u.id)
+  if (ids.length) {
+    await prisma.payment.deleteMany({ where: { userId: { in: ids } } })
+    await prisma.user.deleteMany({ where: { id: { in: ids } } })
+  }
+  return ok(res, { deleted: true, count: ids.length, entity: 'professionals' })
+})
+
+/** Permanently delete ALL payments. */
+const deleteAllPayments = asyncHandler(async (_req, res) => {
+  const result = await prisma.payment.deleteMany({})
+  return ok(res, { deleted: true, count: result.count, entity: 'payments' })
+})
+
+/** Permanently delete ALL business applications. */
+const deleteAllBusinessApplications = asyncHandler(async (_req, res) => {
+  const result = await prisma.businessApplication.deleteMany({})
+  return ok(res, { deleted: true, count: result.count, entity: 'businessApplications' })
+})
+
+/** Permanently delete ALL token packages. */
+const deleteAllPackages = asyncHandler(async (_req, res) => {
+  await prisma.payment.updateMany({ data: { packageId: null } })
+  const result = await prisma.tokenPackage.deleteMany({})
+  return ok(res, { deleted: true, count: result.count, entity: 'packages' })
+})
+
+/**
+ * Permanently delete ALL categories + services (+ questions).
+ * Also removes leads/requests that reference those services.
+ */
+const deleteAllCategories = asyncHandler(async (_req, res) => {
+  const reqDel = await prisma.customerRequest.deleteMany({})
+  await prisma.questionBranch.deleteMany({})
+  await prisma.answerOption.deleteMany({})
+  await prisma.question.deleteMany({})
+  await prisma.professionalService.deleteMany({})
+  const svcDel = await prisma.service.deleteMany({})
+  const catDel = await prisma.category.deleteMany({})
+  return ok(res, {
+    deleted: true,
+    count: catDel.count,
+    servicesDeleted: svcDel.count,
+    requestsDeleted: reqDel.count,
+    entity: 'categories',
+  })
+})
+
+/** Permanently delete ALL UK outcodes. */
+const deleteAllPostcodes = asyncHandler(async (_req, res) => {
+  const result = await prisma.ukOutcode.deleteMany({})
+  return ok(res, { deleted: true, count: result.count, entity: 'postcodes' })
+})
+
+/** Permanently delete other system users (keeps current admin). */
+const deleteAllSystemUsers = asyncHandler(async (req, res) => {
+  const me = req.user.id
+  const result = await prisma.user.deleteMany({
+    where: {
+      role: { in: ['ADMIN', 'SUPER_ADMIN'] },
+      id: { not: me },
+    },
+  })
+  return ok(res, { deleted: true, count: result.count, entity: 'systemUsers' })
+})
+
+/** Clear category_errors setting list. */
+const deleteAllCategoryErrors = asyncHandler(async (_req, res) => {
+  await prisma.setting.upsert({
+    where: { key: 'category_errors' },
+    create: { key: 'category_errors', value: [] },
+    update: { value: [] },
+  })
+  return ok(res, { deleted: true, count: 1, entity: 'categoryErrors' })
+})
+
 module.exports = {
   dashboard,
   listUsers,
@@ -932,4 +1037,14 @@ module.exports = {
   listBusinessApplications,
   approveBusinessApplication,
   declineBusinessApplication,
+  deleteAllLeads,
+  deleteAllCustomers,
+  deleteAllProfessionals,
+  deleteAllPayments,
+  deleteAllBusinessApplications,
+  deleteAllPackages,
+  deleteAllCategories,
+  deleteAllPostcodes,
+  deleteAllSystemUsers,
+  deleteAllCategoryErrors,
 }

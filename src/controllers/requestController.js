@@ -1,3 +1,4 @@
+const fs = require('fs')
 const prisma = require('../config/db')
 const bcrypt = require('bcryptjs')
 const { randomToken } = require('../utils/crypto')
@@ -10,6 +11,28 @@ const {
   resolveLeadTokenCost,
 } = require('../utils/leadPricing')
 const { formatAnswerValue } = require('../utils/formatAnswer')
+const {
+  saveRequestAttachments,
+  absolutePathFor,
+  publicAttachmentShape,
+} = require('../services/attachmentService')
+
+function parseAnswersField(raw) {
+  if (Array.isArray(raw)) return raw
+  if (typeof raw === 'string' && raw.trim()) {
+    try {
+      const parsed = JSON.parse(raw)
+      return Array.isArray(parsed) ? parsed : []
+    } catch {
+      return []
+    }
+  }
+  return []
+}
+
+function mapAttachments(list = []) {
+  return list.map(publicAttachmentShape)
+}
 
 async function upsertAnswers(requestId, answers) {
   const list = Array.isArray(answers) ? answers : []
@@ -171,11 +194,17 @@ async function finalizeRequest({ requestId, customerUserId, body = {}, ip, isNew
     include: {
       service: true,
       answers: { include: { question: true } },
+      attachments: { orderBy: { createdAt: 'asc' } },
       lead: { include: { matches: true } },
     },
   })
 
-  return { request: full, matchCount: matches.length }
+  return {
+    request: full
+      ? { ...full, attachments: mapAttachments(full.attachments || []) }
+      : full,
+    matchCount: matches.length,
+  }
 }
 
 const createDraft = asyncHandler(async (req, res) => {
@@ -324,19 +353,17 @@ const submitRequest = asyncHandler(async (req, res) => {
 
 /** Public: questionnaire finalize creates the customer account + request (no separate signup). */
 const submitGuestRequest = asyncHandler(async (req, res) => {
-  const {
-    email,
-    firstName,
-    lastName,
-    phone,
-    serviceId,
-    postcode,
-    city,
-    address,
-    description,
-    title,
-    answers,
-  } = req.body
+  const email = req.body.email
+  const firstName = req.body.firstName
+  const lastName = req.body.lastName
+  const phone = req.body.phone
+  const serviceId = req.body.serviceId
+  const postcode = req.body.postcode
+  const city = req.body.city
+  const address = req.body.address
+  const description = req.body.description
+  const title = req.body.title
+  const answers = parseAnswersField(req.body.answers)
 
   if (!email || !firstName || !lastName) {
     return fail(res, 'firstName, lastName and email are required')
@@ -401,6 +428,10 @@ const submitGuestRequest = asyncHandler(async (req, res) => {
 
   await upsertAnswers(request.id, answers)
 
+  if (req.files?.length) {
+    await saveRequestAttachments(request.id, req.files)
+  }
+
   const result = await finalizeRequest({
     requestId: request.id,
     customerUserId: user.id,
@@ -427,12 +458,79 @@ const submitGuestRequest = asyncHandler(async (req, res) => {
   )
 })
 
+const uploadAttachments = asyncHandler(async (req, res) => {
+  const request = await prisma.customerRequest.findUnique({
+    where: { id: req.params.id },
+    select: { id: true, customerId: true, status: true },
+  })
+  if (!request || request.customerId !== req.user.customer?.id) {
+    return fail(res, 'Request not found', 404)
+  }
+  if (!['DRAFT', 'SUBMITTED'].includes(request.status)) {
+    return fail(res, 'Attachments can no longer be added to this request', 400)
+  }
+  if (!req.files?.length) return fail(res, 'No files uploaded')
+
+  try {
+    const created = await saveRequestAttachments(request.id, req.files)
+    return ok(res, { attachments: mapAttachments(created) }, 201)
+  } catch (err) {
+    return fail(res, err.message, err.status || 400)
+  }
+})
+
+async function canAccessAttachment(user, requestId) {
+  const request = await prisma.customerRequest.findUnique({
+    where: { id: requestId },
+    include: {
+      lead: {
+        include: {
+          unlocks: true,
+        },
+      },
+    },
+  })
+  if (!request) return { ok: false, status: 404, message: 'Request not found' }
+
+  if (user.role === 'ADMIN' || user.role === 'SUPER_ADMIN') return { ok: true, request }
+  if (user.role === 'CUSTOMER' && request.customerId === user.customer?.id) {
+    return { ok: true, request }
+  }
+  if (user.role === 'PROFESSIONAL' && user.professional?.id && request.lead) {
+    const unlocked = request.lead.unlocks.some((u) => u.professionalId === user.professional.id)
+    if (unlocked) return { ok: true, request }
+    return { ok: false, status: 403, message: 'Unlock this lead to download attachments' }
+  }
+  return { ok: false, status: 403, message: 'Forbidden' }
+}
+
+const downloadAttachment = asyncHandler(async (req, res) => {
+  const access = await canAccessAttachment(req.user, req.params.id)
+  if (!access.ok) return fail(res, access.message, access.status)
+
+  const attachment = await prisma.requestAttachment.findFirst({
+    where: { id: req.params.attachmentId, requestId: req.params.id },
+  })
+  if (!attachment) return fail(res, 'Attachment not found', 404)
+
+  const abs = absolutePathFor(attachment)
+  if (!fs.existsSync(abs)) return fail(res, 'File missing on server', 404)
+
+  res.setHeader('Content-Type', attachment.mimeType || 'application/octet-stream')
+  res.setHeader(
+    'Content-Disposition',
+    `inline; filename="${encodeURIComponent(attachment.originalName)}"`,
+  )
+  return fs.createReadStream(abs).pipe(res)
+})
+
 const myRequests = asyncHandler(async (req, res) => {
   const requests = await prisma.customerRequest.findMany({
     where: { customerId: req.user.customer.id },
     include: {
       service: true,
       answers: { include: { question: { include: { options: true } } } },
+      attachments: { orderBy: { createdAt: 'asc' } },
       lead: {
         include: {
           unlocks: {
@@ -448,6 +546,7 @@ const myRequests = asyncHandler(async (req, res) => {
   })
   const formatted = requests.map((r) => ({
     ...r,
+    attachments: mapAttachments(r.attachments || []),
     answers: (r.answers || []).map((a) => ({
       ...a,
       displayValue: formatAnswerValue(a.value, a.question?.options || []),
@@ -464,6 +563,7 @@ const getRequest = asyncHandler(async (req, res) => {
     include: {
       service: true,
       answers: { include: { question: { include: { options: true } } } },
+      attachments: { orderBy: { createdAt: 'asc' } },
       lead: {
         include: {
           matches: { include: { professional: { select: { id: true, companyName: true, city: true } } } },
@@ -482,6 +582,7 @@ const getRequest = asyncHandler(async (req, res) => {
 
   const formatted = {
     ...request,
+    attachments: mapAttachments(request.attachments || []),
     answers: (request.answers || []).map((a) => ({
       ...a,
       displayValue: formatAnswerValue(a.value, a.question?.options || []),
@@ -500,10 +601,16 @@ const adminListRequests = asyncHandler(async (req, res) => {
       customer: true,
       service: true,
       lead: true,
+      attachments: { orderBy: { createdAt: 'asc' } },
     },
     orderBy: { createdAt: 'desc' },
   })
-  return ok(res, { requests })
+  return ok(res, {
+    requests: requests.map((r) => ({
+      ...r,
+      attachments: mapAttachments(r.attachments || []),
+    })),
+  })
 })
 
 const adminUpdateRequestStatus = asyncHandler(async (req, res) => {
@@ -534,6 +641,8 @@ module.exports = {
   updateMyRequest,
   submitRequest,
   submitGuestRequest,
+  uploadAttachments,
+  downloadAttachment,
   myRequests,
   getRequest,
   deleteRequest,

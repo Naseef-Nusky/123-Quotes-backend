@@ -13,6 +13,8 @@ const professionalRoutes = require('./routes/professionalRoutes')
 const adminRoutes = require('./routes/adminRoutes')
 const contentRoutes = require('./routes/contentRoutes')
 const postcodeRoutes = require('./routes/postcodeRoutes')
+const messageRoutes = require('./routes/messageRoutes')
+const reviewRoutes = require('./routes/reviewRoutes')
 
 const app = express()
 const PORT = process.env.PORT || 5000
@@ -61,6 +63,8 @@ app.use('/api/professionals', professionalRoutes)
 app.use('/api/admin', adminRoutes)
 app.use('/api/content', contentRoutes)
 app.use('/api/postcodes', postcodeRoutes)
+app.use('/api/messages', messageRoutes)
+app.use('/api/reviews', reviewRoutes)
 
 app.use((err, _req, res, _next) => {
   console.error(err)

@@ -1,5 +1,6 @@
 const prisma = require('../config/db')
 const { asyncHandler, ok, fail } = require('../utils/helpers')
+const { reviewStats } = require('../services/reviewService')
 const { purchaseTokenPackage, getSquareConfig } = require('../services/paymentService')
 const { adjustTokens } = require('../services/tokenService')
 const { deleteProfessionalAccount } = require('../services/accountService')
@@ -123,23 +124,34 @@ const publicDirectory = asyncHandler(async (req, res) => {
     user: { status: 'ACTIVE' },
     isAvailable: true,
   }
+  const and = []
+
   if (req.query.service) {
-    where.services = { some: { service: { slug: req.query.service } } }
+    where.services = { some: { service: { slug: String(req.query.service).trim() } } }
   }
+
+  // City and postcode must both apply when provided (AND), not OR together.
   if (req.query.city) {
-    where.OR = [
-      { city: { contains: req.query.city, mode: 'insensitive' } },
-      { serviceAreas: { some: { city: { contains: req.query.city, mode: 'insensitive' } } } },
-    ]
+    const city = String(req.query.city).trim()
+    and.push({
+      OR: [
+        { city: { contains: city, mode: 'insensitive' } },
+        { serviceAreas: { some: { city: { contains: city, mode: 'insensitive' } } } },
+      ],
+    })
   }
+
   if (req.query.postcode) {
     const pc = String(req.query.postcode).trim()
-    where.OR = [
-      ...(where.OR || []),
-      { postcode: { contains: pc, mode: 'insensitive' } },
-      { serviceAreas: { some: { postcode: { contains: pc, mode: 'insensitive' } } } },
-    ]
+    and.push({
+      OR: [
+        { postcode: { contains: pc, mode: 'insensitive' } },
+        { serviceAreas: { some: { postcode: { contains: pc, mode: 'insensitive' } } } },
+      ],
+    })
   }
+
+  if (and.length) where.AND = and
 
   const professionals = await prisma.professionalProfile.findMany({
     where,
@@ -156,7 +168,13 @@ const publicDirectory = asyncHandler(async (req, res) => {
     },
     take: 50,
   })
-  return ok(res, { professionals })
+  const withStats = await Promise.all(
+    professionals.map(async (p) => {
+      const stats = await reviewStats(p.id)
+      return { ...p, ...stats }
+    }),
+  )
+  return ok(res, { professionals: withStats })
 })
 
 const publicProfile = asyncHandler(async (req, res) => {
@@ -177,11 +195,13 @@ const publicProfile = asyncHandler(async (req, res) => {
     },
   })
   if (!professional) return fail(res, 'Professional not found', 404)
+  const stats = await reviewStats(professional.id)
   return ok(res, {
     professional: {
       ...professional,
       email: professional.user?.email,
       user: undefined,
+      ...stats,
     },
   })
 })

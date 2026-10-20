@@ -19,6 +19,9 @@ uploads/
 tmp/
 temp/
 
+# Legacy dump extract cache (large)
+scripts/.import-cache/
+
 # Coverage / test
 coverage/
 .nyc_output/

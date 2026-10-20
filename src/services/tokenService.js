@@ -108,6 +108,7 @@ async function unlockLead({ leadId, professionalId }) {
     include: { user: true },
   })
 
+  const cust = lead.request?.customer
   await sendEmail({
     to: professional.user.email,
     userId: professional.userId,
@@ -116,9 +117,11 @@ async function unlockLead({ leadId, professionalId }) {
     title: 'Lead unlocked',
     body: 'Customer contact details are now available.',
     vars: {
-      customerName: `${lead.request.customer.firstName} ${lead.request.customer.lastName}`,
-      customerEmail: lead.request.customer.user.email,
-      customerPhone: lead.request.customer.phone || '',
+      customerName: cust
+        ? `${cust.firstName} ${cust.lastName}`
+        : `Legacy lead #${lead.request?.legacyUserId || lead.id}`,
+      customerEmail: cust?.user?.email || '',
+      customerPhone: cust?.phone || '',
     },
   })
 

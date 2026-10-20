@@ -137,8 +137,12 @@ const adminList = asyncHandler(async (req, res) => {
     .toUpperCase()
   // Guard against clients serializing undefined into the query string
   if (q === 'UNDEFINED' || q === 'NULL') q = ''
-  const take = Math.min(Math.max(Number(req.query.limit) || 200, 1), 500)
-  const skip = Math.max(Number(req.query.skip) || 0, 0)
+  const takeRaw = Number(req.query.limit)
+  // limit=0 or "all" → return every matching outcode (for scrollable admin UI)
+  const takeAll =
+    req.query.limit === 'all' || takeRaw === 0 || String(req.query.limit || '').toLowerCase() === 'all'
+  const take = takeAll ? undefined : Math.min(Math.max(takeRaw || 200, 1), 20000)
+  const skip = takeAll ? 0 : Math.max(Number(req.query.skip) || 0, 0)
 
   const where = q
     ? {
@@ -156,13 +160,12 @@ const adminList = asyncHandler(async (req, res) => {
     prisma.ukOutcode.findMany({
       where,
       orderBy: { outcode: 'asc' },
-      take,
-      skip,
+      ...(take != null ? { take, skip } : {}),
     }),
     prisma.ukOutcode.count({ where }),
   ])
 
-  return ok(res, { results, total, take, skip })
+  return ok(res, { results, total, take: take ?? total, skip })
 })
 
 const adminCreate = asyncHandler(async (req, res) => {
