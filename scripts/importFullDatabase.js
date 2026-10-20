@@ -160,6 +160,8 @@ async function main() {
   const legacyStatus = (u) =>
     String(u.status || '').toLowerCase() === 'pending' ? 'PENDING' : 'ACTIVE'
   const lastLogin = (u) => (u.alogin ? new Date(u.alogin) : null)
+  // users.alogin is stamped when the old row was created → original Joined date
+  const joinedAt = (u) => (u.alogin ? new Date(String(u.alogin).replace(' ', 'T')) : undefined)
   const proRows = []
   for (const u of realUsers.filter(isPro)) {
     const oldId = Number(u.user_id)
@@ -175,6 +177,7 @@ async function main() {
       companyName: String(u.name || email).trim(),
       status: legacyStatus(u),
       lastLoginAt: lastLogin(u),
+      createdAt: joinedAt(u),
     })
   }
   await prisma.user.createMany({
@@ -185,6 +188,7 @@ async function main() {
       status: r.status,
       emailVerified: true,
       lastLoginAt: r.lastLoginAt,
+      ...(r.createdAt ? { createdAt: r.createdAt } : {}),
     })),
     skipDuplicates: true,
   })
@@ -232,6 +236,7 @@ async function main() {
       phone,
       status: legacyStatus(u),
       lastLoginAt: lastLogin(u),
+      createdAt: joinedAt(u),
     })
   }
   await prisma.user.createMany({
@@ -242,6 +247,7 @@ async function main() {
       status: r.status,
       emailVerified: true,
       lastLoginAt: r.lastLoginAt,
+      ...(r.createdAt ? { createdAt: r.createdAt } : {}),
     })),
     skipDuplicates: true,
   })

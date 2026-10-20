@@ -22,8 +22,8 @@ function assetBase() {
 function resolveLogoFile() {
   const candidates = [
     process.env.EMAIL_LOGO_PATH,
-    path.join(__dirname, '../assets/logo.png'),
-    path.join(__dirname, '../../../123 Quotes-frontend/public/logo.png'),
+    path.join(__dirname, '../assets/logo.jpeg'),
+    path.join(__dirname, '../../../123-Quotes-frontend/public/logo.jpeg'),
   ].filter(Boolean)
 
   for (const file of candidates) {
@@ -61,8 +61,8 @@ function buildLogoAttachment() {
   if (!file) return null
   return {
     content: fs.readFileSync(file).toString('base64'),
-    filename: 'logo.png',
-    type: 'image/png',
+    filename: 'logo.jpeg',
+    type: 'image/jpeg',
     disposition: 'inline',
     content_id: LOGO_CID,
   }

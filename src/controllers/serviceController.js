@@ -53,7 +53,8 @@ const getService = asyncHandler(async (req, res) => {
 
 const adminListCategories = asyncHandler(async (_req, res) => {
   const categories = await prisma.category.findMany({
-    orderBy: { sortOrder: 'asc' },
+    // CRM table: newest first
+    orderBy: [{ createdAt: 'desc' }, { name: 'asc' }],
     include: { _count: { select: { services: true } } },
   })
   return ok(res, { categories })
@@ -69,7 +70,8 @@ const adminListServices = asyncHandler(async (_req, res) => {
         category: { select: { id: true, name: true, slug: true } },
         _count: { select: { questions: true, requests: true } },
       },
-      orderBy: { sortOrder: 'asc' },
+      // CRM table: newest first
+      orderBy: [{ createdAt: 'desc' }, { name: 'asc' }],
     }),
   ])
   return ok(res, { services, categories })

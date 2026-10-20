@@ -159,7 +159,8 @@ const adminList = asyncHandler(async (req, res) => {
   const [results, total] = await Promise.all([
     prisma.ukOutcode.findMany({
       where,
-      orderBy: { outcode: 'asc' },
+      // CRM table: newest first
+      orderBy: [{ createdAt: 'desc' }, { outcode: 'asc' }],
       ...(take != null ? { take, skip } : {}),
     }),
     prisma.ukOutcode.count({ where }),

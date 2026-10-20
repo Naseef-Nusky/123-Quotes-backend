@@ -323,7 +323,10 @@ const deleteSystemUser = asyncHandler(async (req, res) => {
 })
 
 const listPackagesAdmin = asyncHandler(async (_req, res) => {
-  const packages = await prisma.tokenPackage.findMany({ orderBy: { sortOrder: 'asc' } })
+  const packages = await prisma.tokenPackage.findMany({
+    // CRM table: newest first
+    orderBy: [{ createdAt: 'desc' }, { sortOrder: 'asc' }],
+  })
   return ok(res, { packages })
 })
 
