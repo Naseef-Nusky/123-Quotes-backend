@@ -234,6 +234,14 @@ const adminListLeads = asyncHandler(async (_req, res) => {
     const info = outcode ? byOutcode.get(outcode) : null
     return {
       ...lead,
+      // Admins always see submitted files — expose the safe public shape
+      // (id, name, size, downloadPath) instead of raw storage rows.
+      request: lead.request
+        ? {
+            ...lead.request,
+            attachments: (lead.request.attachments || []).map(publicAttachmentShape),
+          }
+        : lead.request,
       postcodeInfo: info
         ? {
             outcode: info.outcode,

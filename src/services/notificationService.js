@@ -32,6 +32,14 @@ async function ensureEmailTemplate(key) {
   })
 }
 
+/** In-app notification for a single user (shown by the portal bell). */
+async function notifyUser({ userId, type = 'STATUS_UPDATE', title, body, meta = {} }) {
+  if (!userId || !title) return null
+  return prisma.notification.create({
+    data: { userId, type, title, body: body || '', meta, emailSent: false, isRead: false },
+  })
+}
+
 /** In-app notifications for all admin / super-admin users. */
 async function notifyAdmins({ title, body, meta = {}, type = 'ADMIN' }) {
   const admins = await prisma.user.findMany({
@@ -135,6 +143,7 @@ async function notifyAdminsOfNewBusiness({ user, contactName, companyName, servi
 }
 
 module.exports = {
+  notifyUser,
   notifyAdmins,
   notifyAdminsOfNewBusiness,
   sendProfessionalUnderReviewEmail,

@@ -12,7 +12,7 @@ router.get('/professional/:professionalId', listForProfessional)
 router.post(
   '/professional/:professionalId',
   protect,
-  authorize('CUSTOMER'),
+  authorize('CUSTOMER', 'PROFESSIONAL'),
   upsertReview,
 )
 router.patch('/:id/status', protect, authorize('ADMIN'), adminUpdateStatus)

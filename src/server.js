@@ -14,6 +14,7 @@ const adminRoutes = require('./routes/adminRoutes')
 const contentRoutes = require('./routes/contentRoutes')
 const postcodeRoutes = require('./routes/postcodeRoutes')
 const messageRoutes = require('./routes/messageRoutes')
+const notificationRoutes = require('./routes/notificationRoutes')
 const reviewRoutes = require('./routes/reviewRoutes')
 
 const app = express()
@@ -65,6 +66,7 @@ app.use('/api/content', contentRoutes)
 app.use('/api/postcodes', postcodeRoutes)
 app.use('/api/messages', messageRoutes)
 app.use('/api/reviews', reviewRoutes)
+app.use('/api/notifications', notificationRoutes)
 
 app.use((err, _req, res, _next) => {
   console.error(err)

@@ -1,11 +1,13 @@
 const prisma = require('../config/db')
 const { asyncHandler, ok, fail } = require('../utils/helpers')
+const { notifyUser } = require('../services/notificationService')
 
 function shapeMessage(row) {
   return {
     id: row.id,
     customerId: row.customerId,
     professionalId: row.professionalId,
+    senderProfessionalId: row.senderProfessionalId || null,
     senderRole: row.senderRole,
     message: row.message,
     status: row.status,
@@ -29,12 +31,22 @@ function shapeMessage(row) {
           email: row.professional.user?.email,
         }
       : undefined,
+    senderProfessional: row.senderProfessional
+      ? {
+          id: row.senderProfessional.id,
+          companyName: row.senderProfessional.companyName,
+          contactName: row.senderProfessional.contactName,
+          phone: row.senderProfessional.phone,
+          email: row.senderProfessional.user?.email,
+        }
+      : undefined,
   }
 }
 
 const messageInclude = {
   customer: { include: { user: { select: { email: true } } } },
   professional: { include: { user: { select: { email: true } } } },
+  senderProfessional: { include: { user: { select: { email: true } } } },
 }
 
 /** Customer or professional sends a message in a customer↔pro thread. */
@@ -59,8 +71,44 @@ const createMessage = asyncHandler(async (req, res) => {
     if (!pro) return fail(res, 'Professional not found', 404)
   } else if (req.user.role === 'PROFESSIONAL') {
     if (!req.user.professional?.id) return fail(res, 'Professional profile required', 403)
-    professionalId = req.user.professional.id
     senderRole = 'PROFESSIONAL'
+
+    // Pro → pro (e.g. one-click "Request Quotation" from Available Pros):
+    // body names the *target* professional and no customer.
+    if (professionalId && !customerId) {
+      if (professionalId === req.user.professional.id) {
+        return fail(res, "You can't send a request to your own business", 400)
+      }
+      const target = await prisma.professionalProfile.findUnique({
+        where: { id: professionalId },
+        select: { id: true, userId: true },
+      })
+      if (!target) return fail(res, 'Professional not found', 404)
+
+      const row = await prisma.clientMessage.create({
+        data: {
+          customerId: null,
+          professionalId,
+          senderProfessionalId: req.user.professional.id,
+          senderRole,
+          message: text,
+          status: 'ACTIVE',
+        },
+        include: messageInclude,
+      })
+
+      notifyUser({
+        userId: target.userId,
+        type: 'QUOTATION_REQUEST',
+        title: 'New quotation request',
+        body: `${req.user.professional.companyName || 'A professional'} requested a quotation from you.`,
+        meta: { link: '/pro/client-requests' },
+      }).catch(() => {})
+
+      return ok(res, { message: shapeMessage(row) }, 201)
+    }
+
+    professionalId = req.user.professional.id
     if (!customerId) return fail(res, 'customerId is required')
     const customer = await prisma.customerProfile.findUnique({
       where: { id: customerId },
@@ -108,10 +156,16 @@ const proSent = asyncHandler(async (req, res) => {
   const professionalId = req.user.professional?.id
   if (!professionalId) return fail(res, 'Professional profile required', 403)
 
+  // ONLY messages this professional actually sent:
+  // - pro → pro quotation requests (senderProfessionalId = me), or
+  // - my messages in customer threads (professionalId = me and I was the sender).
+  // Received quotation requests (professionalId = me, sent by another pro) must NOT appear here.
   const rows = await prisma.clientMessage.findMany({
     where: {
-      professionalId,
-      senderRole: 'PROFESSIONAL',
+      OR: [
+        { senderProfessionalId: professionalId },
+        { professionalId, senderRole: 'PROFESSIONAL', senderProfessionalId: null },
+      ],
       ...(req.query.status ? { status: req.query.status } : {}),
     },
     include: messageInclude,
@@ -152,7 +206,9 @@ const updateStatus = asyncHandler(async (req, res) => {
 
   const isCustomer = req.user.role === 'CUSTOMER' && existing.customerId === req.user.customer?.id
   const isPro =
-    req.user.role === 'PROFESSIONAL' && existing.professionalId === req.user.professional?.id
+    req.user.role === 'PROFESSIONAL' &&
+    (existing.professionalId === req.user.professional?.id ||
+      existing.senderProfessionalId === req.user.professional?.id)
   const isAdmin = req.user.role === 'ADMIN' || req.user.role === 'SUPER_ADMIN'
   if (!isCustomer && !isPro && !isAdmin) return fail(res, 'Forbidden', 403)
 

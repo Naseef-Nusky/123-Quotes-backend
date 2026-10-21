@@ -57,7 +57,14 @@ async function upsertAnswers(requestId, answers) {
   }
 }
 
-async function finalizeRequest({ requestId, customerUserId, body = {}, ip, isNewAccount = false }) {
+async function finalizeRequest({
+  requestId,
+  customerUserId,
+  body = {},
+  ip,
+  isNewAccount = false,
+  needsPasswordSetup = false,
+}) {
   const request = await prisma.customerRequest.findUnique({
     where: { id: requestId },
     include: {
@@ -140,7 +147,7 @@ async function finalizeRequest({ requestId, customerUserId, body = {}, ip, isNew
   let ctaLabel = 'Log in to 123Quotes'
   let ctaUrl = loginUrl
 
-  if (isNewAccount) {
+  if (isNewAccount || needsPasswordSetup) {
     const setPasswordToken = randomToken()
     await prisma.user.update({
       where: { id: request.customer.userId },
@@ -154,10 +161,17 @@ async function finalizeRequest({ requestId, customerUserId, body = {}, ip, isNew
     setPasswordUrl = `${appUrl}/set-password?token=${setPasswordToken}`
     loginUrl = setPasswordUrl
     ctaUrl = setPasswordUrl
-    accountHeading = 'Your Free 123Quotes Account'
-    accountBody =
-      'We have created an account for you so that you can better manage this request as well as any future requests you may wish to place. Simply click the button below to log in:'
-    ctaLabel = 'Log in to 123Quotes'
+    if (isNewAccount) {
+      accountHeading = 'Your Free 123Quotes Account'
+      accountBody =
+        'We have created an account for you so that you can better manage this request as well as any future requests you may wish to place. Simply click the button below to set your password and log in:'
+      ctaLabel = 'Set your password'
+    } else {
+      accountHeading = 'Set Your 123Quotes Password'
+      accountBody =
+        'You already have an account with us, but you have not set a password yet. Click the button below to set your password so you can log in and manage this request:'
+      ctaLabel = 'Set your password'
+    }
   }
 
   await sendEmail({
@@ -351,7 +365,7 @@ const submitRequest = asyncHandler(async (req, res) => {
   return ok(res, { request: result.request, matchCount: result.matchCount })
 })
 
-/** Public: questionnaire finalize creates the customer account + request (no separate signup). */
+/** Public: questionnaire finalize creates a request, reusing an existing customer account when the email already exists. */
 const submitGuestRequest = asyncHandler(async (req, res) => {
   const email = req.body.email
   const firstName = req.body.firstName
@@ -371,47 +385,81 @@ const submitGuestRequest = asyncHandler(async (req, res) => {
   if (!serviceId || !postcode) return fail(res, 'serviceId and postcode are required')
 
   const emailNorm = String(email).trim().toLowerCase()
-  const exists = await prisma.user.findUnique({
-    where: { email_role: { email: emailNorm, role: 'CUSTOMER' } },
-  })
-  if (exists) {
-    return fail(
-      res,
-      'A customer account with this email already exists. Please log in to submit another request.',
-      409,
-    )
-  }
-
   const service = await prisma.service.findFirst({
     where: { id: serviceId, isActive: true },
   })
   if (!service) return fail(res, 'Service not found', 404)
 
-  const placeholderHash = await bcrypt.hash(randomToken(24), 10)
-  const setPasswordToken = randomToken()
-
-  const user = await prisma.user.create({
-    data: {
-      email: emailNorm,
-      passwordHash: placeholderHash,
-      role: 'CUSTOMER',
-      status: 'ACTIVE',
-      emailVerified: true,
-      resetToken: setPasswordToken,
-      resetTokenExpiry: new Date(Date.now() + 1000 * 60 * 60 * 24 * 7),
-      customer: {
-        create: {
-          firstName: String(firstName).trim(),
-          lastName: String(lastName).trim(),
-          phone: phone ? String(phone).trim() : null,
-          postcode: String(postcode).trim(),
-          city: city ? String(city).trim() : null,
-          address: address ? String(address).trim() : null,
-        },
-      },
-    },
+  // Returning customers can submit without logging in again. Their request is
+  // attached to the existing customer profile instead of creating a duplicate.
+  let user = await prisma.user.findUnique({
+    where: { email_role: { email: emailNorm, role: 'CUSTOMER' } },
     include: { customer: true },
   })
+  const isExistingAccount = Boolean(user)
+
+  if (user && user.status !== 'ACTIVE') {
+    return fail(res, 'This customer account is not active. Please contact support.', 403)
+  }
+
+  if (!user) {
+    const placeholderHash = await bcrypt.hash(randomToken(24), 10)
+    const setPasswordToken = randomToken()
+
+    user = await prisma.user.create({
+      data: {
+        email: emailNorm,
+        passwordHash: placeholderHash,
+        role: 'CUSTOMER',
+        status: 'ACTIVE',
+        emailVerified: true,
+        resetToken: setPasswordToken,
+        resetTokenExpiry: new Date(Date.now() + 1000 * 60 * 60 * 24 * 7),
+        customer: {
+          create: {
+            firstName: String(firstName).trim(),
+            lastName: String(lastName).trim(),
+            phone: phone ? String(phone).trim() : null,
+            postcode: String(postcode).trim(),
+            city: city ? String(city).trim() : null,
+            address: address ? String(address).trim() : null,
+          },
+        },
+      },
+      include: { customer: true },
+    })
+  } else if (!user.customer) {
+    user = await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        customer: {
+          create: {
+            firstName: String(firstName).trim(),
+            lastName: String(lastName).trim(),
+            phone: phone ? String(phone).trim() : null,
+            postcode: String(postcode).trim(),
+            city: city ? String(city).trim() : null,
+            address: address ? String(address).trim() : null,
+          },
+        },
+      },
+      include: { customer: true },
+    })
+  } else {
+    // Keep the saved profile identity/details; only fill fields that were blank.
+    const profileUpdates = {}
+    if (!user.customer.phone && phone) profileUpdates.phone = String(phone).trim()
+    if (!user.customer.postcode && postcode) profileUpdates.postcode = String(postcode).trim()
+    if (!user.customer.city && city) profileUpdates.city = String(city).trim()
+    if (!user.customer.address && address) profileUpdates.address = String(address).trim()
+
+    if (Object.keys(profileUpdates).length) {
+      user.customer = await prisma.customerProfile.update({
+        where: { id: user.customer.id },
+        data: profileUpdates,
+      })
+    }
+  }
 
   const request = await prisma.customerRequest.create({
     data: {
@@ -432,25 +480,45 @@ const submitGuestRequest = asyncHandler(async (req, res) => {
     await saveRequestAttachments(request.id, req.files)
   }
 
+  // Guest-created accounts hold a pending set-password token until the
+  // customer chooses a password. If it was never set, the confirmation
+  // email's button must go to set-password instead of the login page.
+  const needsPasswordSetup =
+    isExistingAccount &&
+    Boolean(user.resetToken) &&
+    !String(user.resetToken).startsWith('login_')
+
   const result = await finalizeRequest({
     requestId: request.id,
     customerUserId: user.id,
     body: { postcode, city, address, description },
     ip: req.ip,
-    isNewAccount: true,
+    isNewAccount: !isExistingAccount,
+    needsPasswordSetup,
   })
 
   if (result.error) {
     return fail(res, result.error, result.status || 400)
   }
 
-  await logActivity({ userId: user.id, action: 'customer.register.from_request', ip: req.ip })
+  await logActivity({
+    userId: user.id,
+    action: isExistingAccount
+      ? 'request.submit.guest_existing_account'
+      : 'customer.register.from_request',
+    ip: req.ip,
+  })
 
   return ok(
     res,
     {
-      message:
-        'Request submitted. Check your email to set your password and access your dashboard.',
+      message: isExistingAccount
+        ? needsPasswordSetup
+          ? 'Request submitted to your existing 123Quotes account. Check your email to set your password and view your matches.'
+          : 'Request submitted to your existing 123Quotes account. Check your email for confirmation and log in anytime to view your matches.'
+        : 'Request submitted. Check your email to set your password and access your dashboard.',
+      existingAccount: isExistingAccount,
+      needsPasswordSetup,
       request: result.request,
       matchCount: result.matchCount,
     },
@@ -598,9 +666,10 @@ const adminListRequests = asyncHandler(async (req, res) => {
   const requests = await prisma.customerRequest.findMany({
     where: req.query.status ? { status: req.query.status } : undefined,
     include: {
-      customer: true,
+      customer: { include: { user: { select: { email: true } } } },
       service: true,
       lead: true,
+      answers: { include: { question: { include: { options: true } } } },
       attachments: { orderBy: { createdAt: 'asc' } },
     },
     orderBy: { createdAt: 'desc' },
@@ -609,6 +678,12 @@ const adminListRequests = asyncHandler(async (req, res) => {
     requests: requests.map((r) => ({
       ...r,
       attachments: mapAttachments(r.attachments || []),
+      answers: (r.answers || []).map((a) => ({
+        ...a,
+        displayValue: formatAnswerValue(a.value, a.question?.options || []),
+        value: formatAnswerValue(a.value, a.question?.options || []),
+        rawValue: a.value,
+      })),
     })),
   })
 })

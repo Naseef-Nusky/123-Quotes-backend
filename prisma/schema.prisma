@@ -107,6 +107,8 @@ enum NotificationType {
   PAYMENT
   STATUS_UPDATE
   ADMIN
+  QUOTATION_REQUEST
+  NEW_REVIEW
 }
 
 enum ApplicationStatus {
@@ -187,6 +189,7 @@ model ProfessionalProfile {
   tokenTxns      TokenTransaction[]
   subscription   Subscription?       @relation(fields: [subscriptionId], references: [id])
   messages       ClientMessage[]
+  sentProMessages ClientMessage[]    @relation("ProMessageSender")
   reviews        Review[]
 }
 
@@ -195,6 +198,7 @@ model ClientMessage {
   id             String          @id @default(uuid())
   customerId     String?
   professionalId String?
+  senderProfessionalId String?
   legacyClientId Int?
   legacyProId    Int?
   senderRole     MessageSender
@@ -205,8 +209,10 @@ model ClientMessage {
 
   customer     CustomerProfile?     @relation(fields: [customerId], references: [id], onDelete: SetNull)
   professional ProfessionalProfile? @relation(fields: [professionalId], references: [id], onDelete: SetNull)
+  senderProfessional ProfessionalProfile? @relation("ProMessageSender", fields: [senderProfessionalId], references: [id], onDelete: SetNull)
 
   @@index([professionalId, createdAt])
+  @@index([senderProfessionalId, createdAt])
   @@index([customerId, createdAt])
   @@index([status])
 }
@@ -216,6 +222,8 @@ model Review {
   id             String       @id @default(uuid())
   professionalId String?
   customerId     String?
+  reviewerName           String?
+  reviewerProfessionalId String?
   legacyProId    Int?
   legacyCustomerId Int?
   title          String
@@ -229,6 +237,7 @@ model Review {
   customer     CustomerProfile?     @relation(fields: [customerId], references: [id], onDelete: SetNull)
 
   @@index([professionalId, status])
+  @@index([professionalId, reviewerProfessionalId])
 }
 
 model Category {
