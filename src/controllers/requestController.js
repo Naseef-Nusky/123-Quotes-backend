@@ -5,6 +5,7 @@ const { randomToken } = require('../utils/crypto')
 const { asyncHandler, ok, fail } = require('../utils/helpers')
 const { matchProfessionalsForLead } = require('../services/matchingService')
 const { sendEmail } = require('../services/emailService')
+const { notifyAdmins } = require('../services/notificationService')
 const { logActivity } = require('../services/activityService')
 const {
   getDefaultUnlockTokenCost,
@@ -135,6 +136,22 @@ async function finalizeRequest({
     .filter(Boolean)
     .join(' ')
     .trim() || 'there'
+
+  // CRM badge: admins get a "new lead" notification (Recent Leads tab count).
+  notifyAdmins({
+    title: 'New lead received',
+    body: `${request.service.name} request from ${
+      customerName !== 'there' ? customerName : request.customer.user.email
+    }${updated.reqRow.postcode ? ` (${updated.reqRow.postcode})` : ''}. ${matches.length} professional${
+      matches.length === 1 ? '' : 's'
+    } matched.`,
+    meta: {
+      kind: 'new_lead',
+      requestId: request.id,
+      leadId: updated.lead.id,
+      serviceName: request.service.name,
+    },
+  }).catch(() => {})
   const appUrl = (process.env.APP_URL || 'http://localhost:5173').replace(/\/$/, '')
   const matchCountLabel =
     matches.length === 1 ? '1 professional' : `${matches.length} professionals`

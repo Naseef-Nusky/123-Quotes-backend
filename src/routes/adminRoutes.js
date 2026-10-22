@@ -25,6 +25,7 @@ const {
   listNotifications,
   markNotificationRead,
   markAllNotificationsRead,
+  markNotificationsReadByKind,
   listBusinessApplications,
   approveBusinessApplication,
   declineBusinessApplication,
@@ -60,6 +61,7 @@ router.delete('/users/all', deleteAllSystemUsers)
 router.delete('/category-errors/all', deleteAllCategoryErrors)
 router.get('/notifications', listNotifications)
 router.patch('/notifications/read-all', markAllNotificationsRead)
+router.patch('/notifications/read-kind', markNotificationsReadByKind)
 router.patch('/notifications/:id/read', markNotificationRead)
 router.get('/business-applications', listBusinessApplications)
 router.post('/business-applications/:id/approve', approveBusinessApplication)

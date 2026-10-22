@@ -82,6 +82,10 @@ const adminUpsertCategory = asyncHandler(async (req, res) => {
   if (!name) return fail(res, 'Name is required')
   const slug = slugify(name)
 
+  const existing = id
+    ? await prisma.category.findUnique({ where: { id }, select: { name: true } })
+    : null
+
   const category = id
     ? await prisma.category.update({
         where: { id },
@@ -90,6 +94,49 @@ const adminUpsertCategory = asyncHandler(async (req, res) => {
     : await prisma.category.create({
         data: { name, slug, description, icon, sortOrder: sortOrder || 0, isActive: isActive !== false },
       })
+
+  // The public site mostly displays SERVICE names, and most categories have a
+  // same-named service. If the category was renamed, rename those linked
+  // services too, otherwise the old name keeps showing on the public site.
+  if (id && existing && existing.name !== name) {
+    try {
+      const oldName = existing.name
+      const matching = await prisma.service.findMany({
+        where: { categoryId: id, name: oldName },
+        select: { id: true },
+      })
+      if (matching.length === 1) {
+        const clash = await prisma.service.findFirst({
+          where: { slug, id: { not: matching[0].id } },
+          select: { id: true },
+        })
+        if (!clash) {
+          await prisma.service.update({
+            where: { id: matching[0].id },
+            data: { name, slug },
+          })
+        } else {
+          await prisma.service.update({ where: { id: matching[0].id }, data: { name } })
+        }
+      } else if (matching.length > 1) {
+        await prisma.service.updateMany({
+          where: { categoryId: id, name: oldName },
+          data: { name },
+        })
+      }
+      // Legacy rows often repeat the category name as the blurb; sync those too.
+      await prisma.service.updateMany({
+        where: { categoryId: id, shortDesc: oldName },
+        data: { shortDesc: name },
+      })
+      await prisma.service.updateMany({
+        where: { categoryId: id, description: oldName },
+        data: { description: name },
+      })
+    } catch (e) {
+      console.error('Category rename service sync failed:', e.message)
+    }
+  }
 
   return ok(res, { category }, id ? 200 : 201)
 })

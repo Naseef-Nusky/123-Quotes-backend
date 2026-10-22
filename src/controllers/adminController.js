@@ -775,16 +775,28 @@ const listNotifications = asyncHandler(async (req, res) => {
     ...(unreadOnly ? { isRead: false } : {}),
   }
 
-  const [notifications, unreadCount] = await Promise.all([
+  const [notifications, unreadCount, unread] = await Promise.all([
     prisma.notification.findMany({
       where,
       orderBy: { createdAt: 'desc' },
       take,
     }),
     prisma.notification.count({ where: { userId: req.user.id, isRead: false } }),
+    prisma.notification.findMany({
+      where: { userId: req.user.id, isRead: false },
+      select: { meta: true },
+    }),
   ])
 
-  return ok(res, { notifications, unreadCount })
+  // Unread counts grouped by meta.kind so CRM tabs can show their own badge
+  // (e.g. new_lead -> Recent Leads, business_registration -> Business Registration).
+  const unreadByKind = {}
+  for (const n of unread) {
+    const kind = n.meta?.kind
+    if (kind) unreadByKind[kind] = (unreadByKind[kind] || 0) + 1
+  }
+
+  return ok(res, { notifications, unreadCount, unreadByKind })
 })
 
 const markNotificationRead = asyncHandler(async (req, res) => {
@@ -803,6 +815,22 @@ const markNotificationRead = asyncHandler(async (req, res) => {
 const markAllNotificationsRead = asyncHandler(async (req, res) => {
   const result = await prisma.notification.updateMany({
     where: { userId: req.user.id, isRead: false },
+    data: { isRead: true },
+  })
+  return ok(res, { updated: result.count })
+})
+
+/** Mark all unread notifications of one kind (meta.kind) read, e.g. after
+ *  the admin opens the matching CRM tab. */
+const markNotificationsReadByKind = asyncHandler(async (req, res) => {
+  const kind = String(req.body?.kind || '').trim()
+  if (!kind) return fail(res, 'kind is required')
+  const result = await prisma.notification.updateMany({
+    where: {
+      userId: req.user.id,
+      isRead: false,
+      meta: { path: ['kind'], equals: kind },
+    },
     data: { isRead: true },
   })
   return ok(res, { updated: result.count })
@@ -1037,6 +1065,7 @@ module.exports = {
   listNotifications,
   markNotificationRead,
   markAllNotificationsRead,
+  markNotificationsReadByKind,
   listBusinessApplications,
   approveBusinessApplication,
   declineBusinessApplication,
