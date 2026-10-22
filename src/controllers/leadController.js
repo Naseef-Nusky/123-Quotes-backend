@@ -89,38 +89,106 @@ const professionalLeads = asyncHandler(async (req, res) => {
   const proId = req.user.professional?.id
   if (!proId) return fail(res, 'Professional profile required', 403)
 
-  const maxUnlocks = await getMaxUnlocksPerLead()
-  const tiers = await getUnlockTokenTiers()
-  const matches = await prisma.leadMatch.findMany({
+  const limit = Math.min(Math.max(parseInt(req.query.limit, 10) || 30, 1), 100)
+  const offset = Math.max(parseInt(req.query.offset, 10) || 0, 0)
+  const typeFilter = ['service', 'category'].includes(req.query.type) ? req.query.type : 'all'
+
+  const [maxUnlocks, tiers, proServices] = await Promise.all([
+    getMaxUnlocksPerLead(),
+    getUnlockTokenTiers(),
+    prisma.professionalProfile.findUnique({
+      where: { id: proId },
+      select: { services: { select: { serviceId: true } } },
+    }),
+  ])
+  const myServiceIds = new Set((proServices?.services || []).map((s) => s.serviceId))
+
+  // Light pass first: work out match type / order / counts without loading
+  // full lead details for hundreds of matches.
+  const light = await prisma.leadMatch.findMany({
     where: {
       professionalId: proId,
       status: { notIn: ['DECLINED', 'EXPIRED'] },
+      lead: { status: { notIn: ['CLOSED', 'CANCELLED'] } },
     },
-    include: {
-      lead: {
-        include: {
-          service: true,
-          unlocks: { where: { professionalId: proId } },
-          request: {
-            include: requestIncludeForLead,
-          },
-        },
-      },
+    select: {
+      id: true,
+      status: true,
+      score: true,
+      matchedAt: true,
+      lead: { select: { serviceId: true } },
     },
-    orderBy: { matchedAt: 'desc' },
   })
 
-  const leads = matches.map((m) => ({
+  const typed = light.map((m) => ({
     matchId: m.id,
-    matchStatus: m.status,
+    matchType: myServiceIds.has(m.lead.serviceId) ? 'service' : 'category',
     score: m.score,
-    lead: sanitizeLead(m.lead, (m.lead.unlocks?.length || 0) > 0 || m.status === 'UNLOCKED', {
-      maxUnlocks,
-      tiers,
-    }),
+    matchedAt: m.matchedAt,
   }))
+  const counts = {
+    all: typed.length,
+    service: typed.filter((t) => t.matchType === 'service').length,
+    category: typed.filter((t) => t.matchType === 'category').length,
+  }
 
-  return ok(res, { leads, maxUnlocksPerLead: maxUnlocks, unlockTokenTiers: tiers })
+  // Service matches first, then best score, then newest.
+  const ordered = typed
+    .filter((t) => typeFilter === 'all' || t.matchType === typeFilter)
+    .sort((a, b) => {
+      if (a.matchType !== b.matchType) return a.matchType === 'service' ? -1 : 1
+      if ((b.score || 0) !== (a.score || 0)) return (b.score || 0) - (a.score || 0)
+      return new Date(b.matchedAt).getTime() - new Date(a.matchedAt).getTime()
+    })
+
+  const total = ordered.length
+  const page = ordered.slice(offset, offset + limit)
+
+  // Full details only for this page of matches.
+  const full = page.length
+    ? await prisma.leadMatch.findMany({
+        where: { id: { in: page.map((p) => p.matchId) } },
+        include: {
+          lead: {
+            include: {
+              service: true,
+              unlocks: { where: { professionalId: proId } },
+              request: { include: requestIncludeForLead },
+            },
+          },
+        },
+      })
+    : []
+  const byId = new Map(full.map((m) => [m.id, m]))
+
+  const leads = page
+    .map((p) => {
+      const m = byId.get(p.matchId)
+      if (!m) return null
+      return {
+        matchId: m.id,
+        matchStatus: m.status,
+        matchType: p.matchType,
+        score: m.score,
+        matchedAt: m.matchedAt,
+        lead: sanitizeLead(m.lead, (m.lead.unlocks?.length || 0) > 0 || m.status === 'UNLOCKED', {
+          maxUnlocks,
+          tiers,
+        }),
+      }
+    })
+    .filter(Boolean)
+
+  return ok(res, {
+    leads,
+    total,
+    counts,
+    limit,
+    offset,
+    hasMore: offset + leads.length < total,
+    maxUnlocksPerLead: maxUnlocks,
+    unlockTokenTiers: tiers,
+  })
 })
 
 const unlock = asyncHandler(async (req, res) => {

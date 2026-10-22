@@ -52,6 +52,14 @@ app.use(
   }),
 )
 
+// Public business profile images (logos): /api/profile-images/<proId>/<file>
+app.use(
+  '/api/profile-images',
+  express.static(path.join(__dirname, '../uploads/profiles'), {
+    maxAge: '7d',
+  }),
+)
+
 // Accurate client IP behind reverse proxies (needed for auth rate limits)
 if (process.env.NODE_ENV === 'production' || process.env.TRUST_PROXY === '1') {
   app.set('trust proxy', 1)

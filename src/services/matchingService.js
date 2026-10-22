@@ -5,7 +5,7 @@ function postcodePrefix(postcode = '') {
   return String(postcode).trim().toUpperCase().split(' ')[0].slice(0, 4)
 }
 
-async function matchProfessionalsForLead(leadId) {
+async function matchProfessionalsForLead(leadId, { notify = true } = {}) {
   const lead = await prisma.lead.findUnique({
     where: { id: leadId },
     include: { request: true, service: true },
@@ -42,17 +42,23 @@ async function matchProfessionalsForLead(leadId) {
 
   for (const pro of professionals) {
     let score = 50
-    const areas = pro.serviceAreas || []
+    // Only areas that actually say where the pro works count. Legacy imported
+    // rows often have no postcode/city at all (e.g. label "withina") — those
+    // must not block matching, otherwise the pro can never receive leads.
+    const areas = (pro.serviceAreas || []).filter(
+      (a) => String(a.postcode || '').trim() || String(a.city || '').trim(),
+    )
 
     if (areas.length === 0) {
       score += 5
     } else {
       const areaHit = areas.some((area) => {
-        if (area.postcode && postcodePrefix(area.postcode) === leadPrefix) return true
-        if (area.city && lead.city && area.city.toLowerCase() === lead.city.toLowerCase()) return true
+        const pc = String(area.postcode || '').trim().toUpperCase()
         // Nationwide coverage
-        if (String(area.postcode || '').toUpperCase() === 'NATIONWIDE') return true
+        if (pc === 'NATIONWIDE' || pc === 'UK') return true
         if (String(area.label || '').toLowerCase() === 'nationwide') return true
+        if (pc && postcodePrefix(pc) === leadPrefix) return true
+        if (area.city && lead.city && area.city.toLowerCase() === lead.city.toLowerCase()) return true
         return false
       })
       if (!areaHit) continue
@@ -119,8 +125,8 @@ async function matchProfessionalsForLead(leadId) {
       update: { score: match.score },
     })
 
-    // Email only on first match (avoid spam on rematch)
-    if (!existing) {
+    // Email only on first match (avoid spam on rematch / silent backfills)
+    if (!existing && notify) {
       await sendEmail({
         to: match.email,
         userId: match.userId,

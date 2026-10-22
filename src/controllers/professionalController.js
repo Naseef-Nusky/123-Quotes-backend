@@ -1,4 +1,8 @@
+const fs = require('fs')
+const path = require('path')
+const { randomUUID } = require('crypto')
 const prisma = require('../config/db')
+const { UPLOAD_ROOT } = require('../services/attachmentService')
 const { asyncHandler, ok, fail } = require('../utils/helpers')
 const { reviewStats, reviewStatsForMany } = require('../services/reviewService')
 const { purchaseTokenPackage, getSquareConfig } = require('../services/paymentService')
@@ -45,6 +49,41 @@ const updateProfile = asyncHandler(async (req, res) => {
     data,
   })
   return ok(res, { profile })
+})
+
+const uploadLogo = asyncHandler(async (req, res) => {
+  const professionalId = req.user.professional.id
+  if (!req.file) return fail(res, 'Image file required', 400)
+
+  const extByMime = {
+    'image/jpeg': 'jpg',
+    'image/png': 'png',
+    'image/gif': 'gif',
+    'image/webp': 'webp',
+  }
+  const ext = extByMime[req.file.mimetype] || 'jpg'
+  const dir = path.join(UPLOAD_ROOT, 'profiles', professionalId)
+  fs.mkdirSync(dir, { recursive: true })
+
+  // Remove the previous logo file (only ones we stored locally)
+  const existing = await prisma.professionalProfile.findUnique({
+    where: { id: professionalId },
+    select: { logoUrl: true },
+  })
+  if (existing?.logoUrl?.startsWith('/api/profile-images/')) {
+    const oldPath = path.join(UPLOAD_ROOT, 'profiles', existing.logoUrl.replace('/api/profile-images/', ''))
+    fs.unlink(oldPath, () => {})
+  }
+
+  const storedName = `${randomUUID()}.${ext}`
+  fs.writeFileSync(path.join(dir, storedName), req.file.buffer)
+
+  const logoUrl = `/api/profile-images/${professionalId}/${storedName}`
+  const profile = await prisma.professionalProfile.update({
+    where: { id: professionalId },
+    data: { logoUrl },
+  })
+  return ok(res, { logoUrl, profile })
 })
 
 const setServices = asyncHandler(async (req, res) => {
@@ -235,6 +274,7 @@ const deleteMyAccount = asyncHandler(async (req, res) => {
 module.exports = {
   getProfile,
   updateProfile,
+  uploadLogo,
   setServices,
   setServiceAreas,
   listPackages,

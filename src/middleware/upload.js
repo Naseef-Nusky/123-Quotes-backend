@@ -31,9 +31,24 @@ const upload = multer({
 /** Optional multi-file field `files` (max 3). */
 const uploadRequestFiles = upload.array('files', MAX_FILES)
 
+const IMAGE_MIME = new Set(['image/jpeg', 'image/png', 'image/gif', 'image/webp'])
+
+/** Single profile image (logo) field `image`, max 5 MB, images only. */
+const uploadProfileImage = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 5 * 1024 * 1024, files: 1 },
+  fileFilter: (_req, file, cb) => {
+    if (!IMAGE_MIME.has(file.mimetype)) {
+      return cb(new Error('File type not allowed. Use a JPG, PNG, GIF, or WebP image.'))
+    }
+    return cb(null, true)
+  },
+}).single('image')
+
 module.exports = {
   MAX_FILES,
   MAX_FILE_BYTES,
   ALLOWED_MIME,
   uploadRequestFiles,
+  uploadProfileImage,
 }

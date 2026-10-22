@@ -2,6 +2,7 @@ const express = require('express')
 const {
   getProfile,
   updateProfile,
+  uploadLogo,
   setServices,
   setServiceAreas,
   listPackages,
@@ -14,6 +15,7 @@ const {
   deleteMyAccount,
 } = require('../controllers/professionalController')
 const { protect, authorize } = require('../middleware/auth')
+const { uploadProfileImage } = require('../middleware/upload')
 
 const router = express.Router()
 
@@ -24,6 +26,7 @@ router.get('/payments/config', paymentConfig)
 
 router.get('/me', protect, authorize('PROFESSIONAL'), getProfile)
 router.put('/me', protect, authorize('PROFESSIONAL'), updateProfile)
+router.post('/me/logo', protect, authorize('PROFESSIONAL'), uploadProfileImage, uploadLogo)
 router.delete('/me', protect, authorize('PROFESSIONAL'), deleteMyAccount)
 router.put('/me/services', protect, authorize('PROFESSIONAL'), setServices)
 router.put('/me/areas', protect, authorize('PROFESSIONAL'), setServiceAreas)
