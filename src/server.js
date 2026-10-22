@@ -42,6 +42,16 @@ app.use(
 app.use(express.json({ limit: '2mb' }))
 app.use(morgan('dev'))
 
+// Public brand assets (email logo link): /brand/logo.jpeg
+const path = require('path')
+app.use(
+  '/brand',
+  express.static(path.join(__dirname, 'assets'), {
+    maxAge: '7d',
+    immutable: true,
+  }),
+)
+
 // Accurate client IP behind reverse proxies (needed for auth rate limits)
 if (process.env.NODE_ENV === 'production' || process.env.TRUST_PROXY === '1') {
   app.set('trust proxy', 1)
