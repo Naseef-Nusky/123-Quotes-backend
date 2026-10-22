@@ -1,6 +1,6 @@
 const prisma = require('../config/db')
 const { asyncHandler, ok, fail } = require('../utils/helpers')
-const { reviewStats } = require('../services/reviewService')
+const { reviewStats, reviewStatsForMany } = require('../services/reviewService')
 const { purchaseTokenPackage, getSquareConfig } = require('../services/paymentService')
 const { adjustTokens } = require('../services/tokenService')
 const { deleteProfessionalAccount } = require('../services/accountService')
@@ -168,12 +168,8 @@ const publicDirectory = asyncHandler(async (req, res) => {
     },
     take: 50,
   })
-  const withStats = await Promise.all(
-    professionals.map(async (p) => {
-      const stats = await reviewStats(p.id)
-      return { ...p, ...stats }
-    }),
-  )
+  const statsById = await reviewStatsForMany(professionals.map((p) => p.id))
+  const withStats = professionals.map((p) => ({ ...p, ...statsById.get(p.id) }))
   return ok(res, { professionals: withStats })
 })
 

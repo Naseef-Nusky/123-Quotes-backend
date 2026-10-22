@@ -11,4 +11,26 @@ async function reviewStats(professionalId) {
   return { reviewCount: count, averageRating: average }
 }
 
-module.exports = { reviewStats }
+/** Same stats for many professionals in ONE grouped query (directory lists). */
+async function reviewStatsForMany(professionalIds) {
+  const stats = new Map(
+    professionalIds.map((id) => [id, { reviewCount: 0, averageRating: null }]),
+  )
+  if (!professionalIds.length) return stats
+  const rows = await prisma.review.groupBy({
+    by: ['professionalId'],
+    where: { professionalId: { in: professionalIds }, status: 'APPROVED' },
+    _count: { _all: true },
+    _avg: { rating: true },
+  })
+  for (const row of rows) {
+    stats.set(row.professionalId, {
+      reviewCount: row._count._all,
+      averageRating:
+        row._avg.rating != null ? Math.round(row._avg.rating * 10) / 10 : null,
+    })
+  }
+  return stats
+}
+
+module.exports = { reviewStats, reviewStatsForMany }
