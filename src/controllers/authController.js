@@ -454,10 +454,98 @@ const resetPassword = asyncHandler(async (req, res) => {
   })
 })
 
+/** Update own profile (customer name/phone; professional contact name/phone). */
+const updateMe = asyncHandler(async (req, res) => {
+  const { firstName, lastName, phone, contactName } = req.body || {}
+
+  if (req.user.role === 'CUSTOMER') {
+    if (!req.user.customer) return fail(res, 'Customer profile not found', 404)
+    const data = {}
+    if (firstName !== undefined) data.firstName = String(firstName).trim()
+    if (lastName !== undefined) data.lastName = String(lastName).trim()
+    if (phone !== undefined) data.phone = String(phone).trim() || null
+    if (data.firstName === '' || data.lastName === '') {
+      return fail(res, 'First name and last name cannot be empty')
+    }
+    await prisma.customerProfile.update({
+      where: { id: req.user.customer.id },
+      data,
+    })
+  } else if (req.user.role === 'PROFESSIONAL') {
+    if (!req.user.professional) return fail(res, 'Professional profile not found', 404)
+    const data = {}
+    if (contactName !== undefined) data.contactName = String(contactName).trim()
+    if (phone !== undefined) data.phone = String(phone).trim() || null
+    await prisma.professionalProfile.update({
+      where: { id: req.user.professional.id },
+      data,
+    })
+  } else {
+    return fail(res, 'Profile update is not available for this account type', 400)
+  }
+
+  const updated = await prisma.user.findUnique({
+    where: { id: req.user.id },
+    include: { customer: true, professional: true },
+  })
+  return ok(res, { user: publicUser(updated), message: 'Profile saved.' })
+})
+
+/** Change own password while logged in. */
+const changePassword = asyncHandler(async (req, res) => {
+  const { currentPassword, newPassword } = req.body || {}
+  if (!currentPassword || !newPassword) {
+    return fail(res, 'Current password and new password are required')
+  }
+  if (String(newPassword).length < MIN_PASSWORD_LENGTH) {
+    return fail(res, `New password must be at least ${MIN_PASSWORD_LENGTH} characters`)
+  }
+
+  const user = await prisma.user.findUnique({ where: { id: req.user.id } })
+  if (!user) return fail(res, 'User not found', 404)
+
+  const matches = await bcrypt.compare(String(currentPassword), user.passwordHash)
+  if (!matches) return fail(res, 'Current password is incorrect', 400)
+
+  await prisma.user.update({
+    where: { id: user.id },
+    data: {
+      passwordHash: await bcrypt.hash(String(newPassword), 10),
+      resetToken: null,
+      resetTokenExpiry: null,
+    },
+  })
+  return ok(res, { message: 'Password changed successfully.' })
+})
+
+/** Permanently delete own account (customer or professional). */
+const deleteAccount = asyncHandler(async (req, res) => {
+  try {
+    const {
+      deleteCustomerAccount,
+      deleteProfessionalAccount,
+    } = require('../services/accountService')
+    if (req.user.role === 'CUSTOMER') {
+      const result = await deleteCustomerAccount(req.user.id)
+      return ok(res, { ...result, message: 'Your account has been permanently deleted.' })
+    }
+    if (req.user.role === 'PROFESSIONAL') {
+      const result = await deleteProfessionalAccount(req.user.id)
+      return ok(res, { ...result, message: 'Your account has been permanently deleted.' })
+    }
+    return fail(res, 'Account deletion is not available for this account type', 400)
+  } catch (err) {
+    return fail(res, err.message || 'Delete failed', err.status || 400)
+  }
+})
+
 module.exports = {
   registerProfessional,
   login,
   me,
+  updateMe,
+  changePassword,
+  deleteAccount,
   verifyEmail,
   forgotPassword,
   requestLoginLink,

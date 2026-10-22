@@ -3,6 +3,9 @@ const {
   registerProfessional,
   login,
   me,
+  updateMe,
+  changePassword,
+  deleteAccount,
   verifyEmail,
   forgotPassword,
   requestLoginLink,
@@ -30,6 +33,9 @@ router.post('/login', strictAuthLimiter, login)
 router.post('/login-link', strictAuthLimiter, requestLoginLink)
 router.post('/login-link/verify', strictAuthLimiter, loginWithLink)
 router.get('/me', protect, me)
+router.put('/me', protect, updateMe)
+router.post('/change-password', protect, strictAuthLimiter, changePassword)
+router.delete('/me', protect, deleteAccount)
 router.post('/verify-email', authLimiter, verifyEmail)
 router.post('/forgot-password', strictAuthLimiter, forgotPassword)
 router.post('/reset-password', strictAuthLimiter, resetPassword)
