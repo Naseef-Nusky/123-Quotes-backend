@@ -8,6 +8,7 @@ const { reviewStats, reviewStatsForMany } = require('../services/reviewService')
 const { purchaseTokenPackage, getSquareConfig } = require('../services/paymentService')
 const { adjustTokens } = require('../services/tokenService')
 const { deleteProfessionalAccount } = require('../services/accountService')
+const { rematchLeadsForProfessional } = require('../services/matchingService')
 
 const getProfile = asyncHandler(async (req, res) => {
   const profile = await prisma.professionalProfile.findUnique({
@@ -48,7 +49,14 @@ const updateProfile = asyncHandler(async (req, res) => {
     where: { id: req.user.professional.id },
     data,
   })
-  return ok(res, { profile })
+
+  // Toggling availability should immediately add/remove open lead matches
+  let rematch = null
+  if (typeof data.isAvailable === 'boolean') {
+    rematch = await rematchLeadsForProfessional(profile.id, { notify: false })
+  }
+
+  return ok(res, { profile, rematch })
 })
 
 const uploadLogo = asyncHandler(async (req, res) => {
@@ -89,6 +97,8 @@ const uploadLogo = asyncHandler(async (req, res) => {
 const setServices = asyncHandler(async (req, res) => {
   const serviceIds = Array.isArray(req.body.serviceIds) ? req.body.serviceIds : []
   const professionalId = req.user.professional.id
+  // Frontend often saves services then areas — skip rematch here to avoid doing it twice
+  const skipRematch = Boolean(req.body.skipRematch)
 
   await prisma.professionalService.deleteMany({ where: { professionalId } })
   if (serviceIds.length) {
@@ -97,11 +107,15 @@ const setServices = asyncHandler(async (req, res) => {
     })
   }
 
+  const rematch = skipRematch
+    ? null
+    : await rematchLeadsForProfessional(professionalId, { notify: false })
+
   const services = await prisma.professionalService.findMany({
     where: { professionalId },
     include: { service: true },
   })
-  return ok(res, { services })
+  return ok(res, { services, rematch })
 })
 
 const setServiceAreas = asyncHandler(async (req, res) => {
@@ -111,18 +125,26 @@ const setServiceAreas = asyncHandler(async (req, res) => {
   await prisma.serviceArea.deleteMany({ where: { professionalId } })
   if (areas.length) {
     await prisma.serviceArea.createMany({
-      data: areas.map((a) => ({
-        professionalId,
-        postcode: a.postcode || null,
-        city: a.city || null,
-        radiusMiles: a.radiusMiles || null,
-        label: a.label || null,
-      })),
+      data: areas.map((a) => {
+        const pc = a.postcode != null ? String(a.postcode).trim().toUpperCase() : null
+        return {
+          professionalId,
+          postcode: pc || null,
+          city: a.city != null ? String(a.city).trim() || null : null,
+          radiusMiles:
+            a.radiusMiles != null && a.radiusMiles !== ''
+              ? Number(a.radiusMiles) || null
+              : null,
+          label: a.label != null ? String(a.label).trim() || null : null,
+        }
+      }),
     })
   }
 
+  const rematch = await rematchLeadsForProfessional(professionalId, { notify: false })
+
   const serviceAreas = await prisma.serviceArea.findMany({ where: { professionalId } })
-  return ok(res, { serviceAreas })
+  return ok(res, { serviceAreas, rematch })
 })
 
 const listPackages = asyncHandler(async (_req, res) => {
