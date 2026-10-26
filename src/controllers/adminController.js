@@ -776,31 +776,46 @@ const deleteCustomer = asyncHandler(async (req, res) => {
 const listNotifications = asyncHandler(async (req, res) => {
   const take = Math.min(Number(req.query.limit) || 30, 100)
   const unreadOnly = String(req.query.unread || '') === '1'
+  // lite=1 → badge counts only (used by CRM polling; avoids shipping full rows)
+  const lite = String(req.query.lite || '') === '1'
+  const userId = req.user.id
 
   const where = {
-    userId: req.user.id,
+    userId,
     ...(unreadOnly ? { isRead: false } : {}),
   }
 
-  const [notifications, unreadCount, unread] = await Promise.all([
-    prisma.notification.findMany({
-      where,
-      orderBy: { createdAt: 'desc' },
-      take,
-    }),
-    prisma.notification.count({ where: { userId: req.user.id, isRead: false } }),
-    prisma.notification.findMany({
-      where: { userId: req.user.id, isRead: false },
-      select: { meta: true },
-    }),
+  const [unreadCount, kindRows, notifications] = await Promise.all([
+    prisma.notification.count({ where: { userId, isRead: false } }),
+    prisma.$queryRaw`
+      SELECT meta->>'kind' AS kind, COUNT(*)::int AS count
+      FROM "Notification"
+      WHERE "userId" = ${userId}
+        AND "isRead" = false
+        AND meta->>'kind' IS NOT NULL
+      GROUP BY meta->>'kind'
+    `,
+    lite
+      ? Promise.resolve([])
+      : prisma.notification.findMany({
+          where,
+          orderBy: { createdAt: 'desc' },
+          take,
+          select: {
+            id: true,
+            type: true,
+            title: true,
+            body: true,
+            meta: true,
+            isRead: true,
+            createdAt: true,
+          },
+        }),
   ])
 
-  // Unread counts grouped by meta.kind so CRM tabs can show their own badge
-  // (e.g. new_lead -> Recent Leads, business_registration -> Business Registration).
   const unreadByKind = {}
-  for (const n of unread) {
-    const kind = n.meta?.kind
-    if (kind) unreadByKind[kind] = (unreadByKind[kind] || 0) + 1
+  for (const row of kindRows || []) {
+    if (row.kind) unreadByKind[row.kind] = Number(row.count) || 0
   }
 
   return ok(res, { notifications, unreadCount, unreadByKind })

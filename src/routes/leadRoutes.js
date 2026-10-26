@@ -4,6 +4,7 @@ const {
   unlock,
   decline,
   adminListLeads,
+  adminGetLead,
   adminDeleteLead,
   adminUpdateLead,
   adminRematch,
@@ -16,6 +17,7 @@ router.get('/mine', protect, authorize('PROFESSIONAL'), professionalLeads)
 router.post('/:id/unlock', protect, authorize('PROFESSIONAL'), unlock)
 router.post('/:id/decline', protect, authorize('PROFESSIONAL'), decline)
 router.get('/admin/all', protect, authorize('ADMIN'), adminListLeads)
+router.get('/admin/:id', protect, authorize('ADMIN'), adminGetLead)
 router.put('/admin/:id', protect, authorize('ADMIN'), adminUpdateLead)
 router.delete('/admin/:id', protect, authorize('ADMIN'), adminDeleteLead)
 router.post('/admin/:id/rematch', protect, authorize('ADMIN'), adminRematch)

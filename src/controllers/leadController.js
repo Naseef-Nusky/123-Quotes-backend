@@ -274,26 +274,75 @@ function outcodeFromPostcode(postcode) {
   return /^[A-Z]{1,2}\d[A-Z\d]?$/.test(candidate) ? candidate : candidate || null
 }
 
-const adminListLeads = asyncHandler(async (_req, res) => {
-  const leads = await prisma.lead.findMany({
-    include: {
-      service: true,
-      request: {
-        include: requestIncludeForLead,
-      },
-      matches: { include: { professional: true } },
-      unlocks: true,
-    },
-    orderBy: { createdAt: 'desc' },
-  })
+const adminListLeads = asyncHandler(async (req, res) => {
+  const limit = Math.min(Math.max(parseInt(req.query.limit, 10) || 150, 1), 500)
+  const offset = Math.max(parseInt(req.query.offset, 10) || 0, 0)
+  const recentDays = parseInt(req.query.recentDays, 10)
+  const status = String(req.query.status || '').trim()
 
-  // Enrich with old-DB postal_codes data (district/ward/Country/lat/lng),
-  // aggregated per outcode in UkOutcode: town=district, region=ward.
+  const where = {}
+  if (Number.isFinite(recentDays) && recentDays > 0) {
+    where.createdAt = { gte: new Date(Date.now() - recentDays * 864e5) }
+  }
+  if (status) where.status = status
+
+  // List payload is deliberately light: no answers/options/attachments
+  // (those are loaded via adminGetLead when viewing a single lead).
+  const [total, leads] = await Promise.all([
+    prisma.lead.count({ where }),
+    prisma.lead.findMany({
+      where,
+      orderBy: { createdAt: 'desc' },
+      take: limit,
+      skip: offset,
+      select: {
+        id: true,
+        requestId: true,
+        status: true,
+        summary: true,
+        postcode: true,
+        city: true,
+        tokenCost: true,
+        unlockTiers: true,
+        matchedCount: true,
+        unlockedCount: true,
+        createdAt: true,
+        updatedAt: true,
+        service: { select: { id: true, name: true, slug: true, tokenCost: true } },
+        request: {
+          select: {
+            id: true,
+            contactName: true,
+            contactEmail: true,
+            contactPhone: true,
+            postcode: true,
+            city: true,
+            address: true,
+            customer: {
+              select: {
+                firstName: true,
+                lastName: true,
+                phone: true,
+                postcode: true,
+                city: true,
+                address: true,
+                user: { select: { email: true } },
+              },
+            },
+          },
+        },
+      },
+    }),
+  ])
+
   const outcodes = [
     ...new Set(leads.map((l) => outcodeFromPostcode(l.postcode)).filter(Boolean)),
   ]
   const outcodeRows = outcodes.length
-    ? await prisma.ukOutcode.findMany({ where: { outcode: { in: outcodes } } })
+    ? await prisma.ukOutcode.findMany({
+        where: { outcode: { in: outcodes } },
+        select: { outcode: true, town: true, region: true, country: true },
+      })
     : []
   const byOutcode = new Map(outcodeRows.map((r) => [r.outcode, r]))
 
@@ -302,8 +351,112 @@ const adminListLeads = asyncHandler(async (_req, res) => {
     const info = outcode ? byOutcode.get(outcode) : null
     return {
       ...lead,
-      // Admins always see submitted files — expose the safe public shape
-      // (id, name, size, downloadPath) instead of raw storage rows.
+      postcodeInfo: info
+        ? {
+            outcode: info.outcode,
+            fullPostcode: lead.postcode || null,
+            district: info.town || null,
+            ward: info.region || null,
+            country: info.country || null,
+          }
+        : outcode
+          ? { outcode, fullPostcode: lead.postcode || null }
+          : null,
+    }
+  })
+
+  return ok(res, {
+    leads: enriched,
+    total,
+    limit,
+    offset,
+    hasMore: offset + enriched.length < total,
+  })
+})
+
+const adminGetLead = asyncHandler(async (req, res) => {
+  const lead = await prisma.lead.findUnique({
+    where: { id: req.params.id },
+    select: {
+      id: true,
+      requestId: true,
+      status: true,
+      summary: true,
+      postcode: true,
+      city: true,
+      tokenCost: true,
+      unlockTiers: true,
+      matchedCount: true,
+      unlockedCount: true,
+      createdAt: true,
+      updatedAt: true,
+      service: { select: { id: true, name: true, slug: true, tokenCost: true } },
+      request: {
+        select: {
+          id: true,
+          description: true,
+          contactName: true,
+          contactEmail: true,
+          contactPhone: true,
+          postcode: true,
+          city: true,
+          address: true,
+          legacyUserId: true,
+          customer: {
+            select: {
+              firstName: true,
+              lastName: true,
+              phone: true,
+              postcode: true,
+              city: true,
+              address: true,
+              user: { select: { email: true } },
+            },
+          },
+          answers: {
+            select: {
+              id: true,
+              questionId: true,
+              value: true,
+              question: {
+                select: {
+                  id: true,
+                  label: true,
+                  type: true,
+                  options: { select: { id: true, label: true, value: true } },
+                },
+              },
+            },
+          },
+          attachments: {
+            orderBy: { createdAt: 'asc' },
+            select: {
+              id: true,
+              requestId: true,
+              originalName: true,
+              mimeType: true,
+              sizeBytes: true,
+              ext: true,
+              createdAt: true,
+            },
+          },
+        },
+      },
+    },
+  })
+  if (!lead) return fail(res, 'Lead not found', 404)
+
+  const outcode = outcodeFromPostcode(lead.postcode)
+  const info = outcode
+    ? await prisma.ukOutcode.findUnique({
+        where: { outcode },
+        select: { outcode: true, town: true, region: true, country: true },
+      })
+    : null
+
+  return ok(res, {
+    lead: {
+      ...lead,
       request: lead.request
         ? {
             ...lead.request,
@@ -321,10 +474,8 @@ const adminListLeads = asyncHandler(async (_req, res) => {
         : outcode
           ? { outcode, fullPostcode: lead.postcode || null }
           : null,
-    }
+    },
   })
-
-  return ok(res, { leads: enriched })
 })
 
 const adminDeleteLead = asyncHandler(async (req, res) => {
@@ -537,6 +688,7 @@ module.exports = {
   unlock,
   decline,
   adminListLeads,
+  adminGetLead,
   adminDeleteLead,
   adminUpdateLead,
   adminRematch,
