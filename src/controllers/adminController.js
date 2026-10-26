@@ -8,6 +8,7 @@ const {
 } = require('../services/notificationService')
 const { applyApplicationToProfile } = require('../services/businessApplicationService')
 const { deleteCustomerAccount } = require('../services/accountService')
+const { rematchLeadsForProfessional } = require('../services/matchingService')
 
 const dashboard = asyncHandler(async (_req, res) => {
   const [customers, professionals, requests, leads, unlocks, payments, lockSetting] =
@@ -754,6 +755,10 @@ const createProfessional = asyncHandler(async (req, res) => {
       String(contactName).trim(),
       String(companyName || contactName).trim(),
     )
+    // Match against existing open leads for their services / areas
+    if (user.professional?.id) {
+      await rematchLeadsForProfessional(user.professional.id, { notify: false }).catch(() => {})
+    }
   }
 
   return ok(res, { user }, 201)
@@ -869,7 +874,7 @@ const approveBusinessApplication = asyncHandler(async (req, res) => {
     return fail(res, 'Application is not pending', 400)
   }
 
-  await applyApplicationToProfile(application, { activateUser: true })
+  const professional = await applyApplicationToProfile(application, { activateUser: true })
 
   const updated = await prisma.businessApplication.update({
     where: { id: application.id },
@@ -894,7 +899,14 @@ const approveBusinessApplication = asyncHandler(async (req, res) => {
     }
   }
 
-  return ok(res, { application: updated })
+  // Pull in all existing matching leads for this new / newly approved profile
+  const proId = professional?.id
+  let rematch = null
+  if (proId) {
+    rematch = await rematchLeadsForProfessional(proId, { notify: false }).catch(() => null)
+  }
+
+  return ok(res, { application: updated, rematch })
 })
 
 const declineBusinessApplication = asyncHandler(async (req, res) => {
