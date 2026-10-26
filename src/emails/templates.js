@@ -153,11 +153,14 @@ const EMAIL_TEMPLATES = [
         ${h1('New lead available')}
         ${p('Hi there,')}
         ${p('A new <strong>{{serviceName}}</strong> lead is available near <strong>{{postcode}}</strong>.')}
-        ${p('{{summary}}')}
+        ${h2('What the customer told us')}
+        {{answersHtml}}
+        ${p('Unlock the lead in your portal to see contact details and respond.')}
         ${btn('businessLoginUrl', 'View lead in portal')}
       `),
     }),
-    bodyText: 'New lead: {{serviceName}} / {{postcode}} — {{businessLoginUrl}}',
+    bodyText:
+      'New lead: {{serviceName}} / {{postcode}}\n\nCustomer answers:\n{{answersText}}\n\nView: {{businessLoginUrl}}',
   },
   {
     key: 'lead_unlocked',

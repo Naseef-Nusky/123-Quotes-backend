@@ -1,5 +1,6 @@
 const prisma = require('../config/db')
 const { sendEmail } = require('./emailService')
+const { formatLeadAnswersForEmail } = require('../utils/formatAnswer')
 
 /** Outward code from a full or partial UK postcode (e.g. SW1A 1AA → SW1A). */
 function extractOutcode(input = '') {
@@ -246,9 +247,33 @@ async function rematchLeadsForProfessional(professionalId, { notify = false } = 
 async function matchProfessionalsForLead(leadId, { notify = true } = {}) {
   const lead = await prisma.lead.findUnique({
     where: { id: leadId },
-    include: { request: true, service: true },
+    include: {
+      service: true,
+      request: {
+        include: {
+          answers: {
+            include: { question: { include: { options: true } } },
+          },
+        },
+      },
+    },
   })
   if (!lead) throw new Error('Lead not found')
+
+  const sortedAnswers = [...(lead.request?.answers || [])].sort(
+    (a, b) => (a.question?.sortOrder ?? 0) - (b.question?.sortOrder ?? 0),
+  )
+  const { answersHtml, answersText } = formatLeadAnswersForEmail(sortedAnswers)
+  // Fallback if a lead has summary text but no structured answers
+  const answersBlockHtml =
+    answersHtml ||
+    (lead.summary
+      ? `<p style="margin:0 0 16px;font-size:15px;line-height:1.65;color:#222222;">${String(lead.summary)
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')}</p>`
+      : '<p style="margin:0 0 16px;font-size:14px;color:#64748b;">No questionnaire answers were provided.</p>')
+  const answersBlockText = answersText || lead.summary || 'No questionnaire answers were provided.'
 
   const categoryId = lead.service?.categoryId || null
 
@@ -340,8 +365,10 @@ async function matchProfessionalsForLead(leadId, { notify = true } = {}) {
         body: `A new ${lead.service.name} lead is available near ${lead.postcode}.`,
         vars: {
           serviceName: lead.service.name,
-          postcode: lead.postcode,
+          postcode: lead.postcode || '',
           summary: lead.summary || '',
+          answersHtml: answersBlockHtml,
+          answersText: answersBlockText,
         },
       })
     }

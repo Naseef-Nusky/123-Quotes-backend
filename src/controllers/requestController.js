@@ -239,6 +239,13 @@ async function finalizeRequest({
 }
 
 const createDraft = asyncHandler(async (req, res) => {
+  if (req.user?.role && req.user.role !== 'CUSTOMER') {
+    return fail(
+      res,
+      'Business accounts cannot create customer requests. Please use Customer Login.',
+      403,
+    )
+  }
   if (!req.user.customer) return fail(res, 'Customer profile required', 403)
   const { serviceId, postcode, city, address, description, title } = req.body
   if (!serviceId || !postcode) return fail(res, 'serviceId and postcode are required')

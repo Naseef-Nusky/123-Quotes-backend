@@ -61,7 +61,23 @@ function authorize(...roles) {
       roles.includes(userRole) ||
       (userRole === 'SUPER_ADMIN' && roles.includes('ADMIN'))
 
-    if (!allowed) return fail(res, 'Forbidden', 403)
+    if (!allowed) {
+      if (roles.includes('CUSTOMER') && userRole === 'PROFESSIONAL') {
+        return fail(
+          res,
+          'Business accounts cannot create customer requests. Please use Customer Login.',
+          403,
+        )
+      }
+      if (roles.includes('PROFESSIONAL') && userRole === 'CUSTOMER') {
+        return fail(
+          res,
+          'Customer accounts cannot access the business portal. Please use Business Login.',
+          403,
+        )
+      }
+      return fail(res, 'Forbidden', 403)
+    }
     return next()
   }
 }
