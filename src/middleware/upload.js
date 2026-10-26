@@ -57,6 +57,18 @@ const uploadServiceImage = multer({
   },
 }).single('image')
 
+/** Batch marketplace image sync field `files` (max 40), images only, 8 MB each. */
+const uploadMarketplaceImages = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 8 * 1024 * 1024, files: 40 },
+  fileFilter: (_req, file, cb) => {
+    if (!IMAGE_MIME.has(file.mimetype)) {
+      return cb(new Error('File type not allowed. Use a JPG, PNG, GIF, or WebP image.'))
+    }
+    return cb(null, true)
+  },
+}).array('files', 40)
+
 module.exports = {
   MAX_FILES,
   MAX_FILE_BYTES,
@@ -64,4 +76,5 @@ module.exports = {
   uploadRequestFiles,
   uploadProfileImage,
   uploadServiceImage,
+  uploadMarketplaceImages,
 }

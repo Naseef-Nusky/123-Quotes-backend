@@ -1,3 +1,5 @@
+const fs = require('fs')
+const path = require('path')
 const prisma = require('../config/db')
 const { asyncHandler, ok, fail } = require('../utils/helpers')
 const bcrypt = require('bcryptjs')
@@ -9,6 +11,45 @@ const {
 const { applyApplicationToProfile } = require('../services/businessApplicationService')
 const { deleteCustomerAccount } = require('../services/accountService')
 const { rematchLeadsForProfessional } = require('../services/matchingService')
+
+const MARKETPLACE_SHARED = path.join(__dirname, '../../uploads/marketplace/shared')
+const SAFE_MARKETPLACE_NAME = /^[a-f0-9]{16,64}\.(jpe?g|png|gif|webp)$/i
+
+/**
+ * Sync pre-hashed marketplace card images onto this server's disk.
+ * Expects multipart `files` whose originalnames match `<hash>.<ext>`.
+ */
+const syncMarketplaceImages = asyncHandler(async (req, res) => {
+  const files = req.files || []
+  if (!files.length) return fail(res, 'No image files uploaded', 400)
+
+  fs.mkdirSync(MARKETPLACE_SHARED, { recursive: true })
+  let saved = 0
+  let skipped = 0
+  const rejected = []
+
+  for (const file of files) {
+    const name = path.basename(String(file.originalname || ''))
+    if (!SAFE_MARKETPLACE_NAME.test(name)) {
+      rejected.push(name || '(unnamed)')
+      continue
+    }
+    const dest = path.join(MARKETPLACE_SHARED, name)
+    if (fs.existsSync(dest) && fs.statSync(dest).size === file.buffer.length) {
+      skipped++
+      continue
+    }
+    fs.writeFileSync(dest, file.buffer)
+    saved++
+  }
+
+  return ok(res, {
+    saved,
+    skipped,
+    rejected,
+    totalReceived: files.length,
+  })
+})
 
 const dashboard = asyncHandler(async (_req, res) => {
   const [customers, professionals, requests, leads, unlocks, payments, lockSetting] =
@@ -1113,4 +1154,5 @@ module.exports = {
   deleteAllPostcodes,
   deleteAllSystemUsers,
   deleteAllCategoryErrors,
+  syncMarketplaceImages,
 }

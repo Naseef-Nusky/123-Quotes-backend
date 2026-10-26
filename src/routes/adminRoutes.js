@@ -39,8 +39,10 @@ const {
   deleteAllPostcodes,
   deleteAllSystemUsers,
   deleteAllCategoryErrors,
+  syncMarketplaceImages,
 } = require('../controllers/adminController')
 const { protect, authorize } = require('../middleware/auth')
+const { uploadMarketplaceImages } = require('../middleware/upload')
 
 const router = express.Router()
 
@@ -91,5 +93,11 @@ router.get('/settings', getSettings)
 router.post('/settings', upsertSetting)
 router.get('/pages', getPages)
 router.post('/pages', upsertPage)
+router.post('/marketplace-images/sync', (req, res, next) => {
+  uploadMarketplaceImages(req, res, (err) => {
+    if (err) return res.status(400).json({ message: err.message || 'Upload failed' })
+    return syncMarketplaceImages(req, res, next)
+  })
+})
 
 module.exports = router
