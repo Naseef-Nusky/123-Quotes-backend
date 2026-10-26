@@ -17,9 +17,16 @@ const getProfile = asyncHandler(async (req, res) => {
       services: { include: { service: true } },
       serviceAreas: true,
       tokenTxns: { orderBy: { createdAt: 'desc' }, take: 20 },
+      user: { select: { email: true, status: true } },
     },
   })
-  return ok(res, { profile })
+  if (!profile) return fail(res, 'Profile not found', 404)
+  return ok(res, {
+    profile: {
+      ...profile,
+      email: profile.user?.email || req.user?.email || null,
+    },
+  })
 })
 
 const updateProfile = asyncHandler(async (req, res) => {
