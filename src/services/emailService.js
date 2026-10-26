@@ -1,16 +1,14 @@
 const fs = require('fs')
 const path = require('path')
-const sgMail = require('@sendgrid/mail')
+const { Resend } = require('resend')
 const prisma = require('../config/db')
 
 const LOGO_CID = '123quotes-logo'
 
 const enabled = () =>
-  process.env.EMAIL_ENABLED === 'true' && Boolean(process.env.SENDGRID_API_KEY)
+  process.env.EMAIL_ENABLED === 'true' && Boolean(process.env.RESEND_API_KEY)
 
-if (process.env.SENDGRID_API_KEY) {
-  sgMail.setApiKey(process.env.SENDGRID_API_KEY)
-}
+const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null
 
 function assetBase() {
   return (process.env.EMAIL_ASSET_BASE_URL || process.env.APP_URL || 'http://localhost:5173').replace(
@@ -40,6 +38,16 @@ function isPublicHttpUrl(url) {
   return /^https:\/\//i.test(String(url || ''))
 }
 
+function fromAddress() {
+  const email =
+    process.env.RESEND_FROM_EMAIL ||
+    process.env.SENDGRID_FROM_EMAIL ||
+    'noreply@123quotes.com'
+  const name =
+    process.env.RESEND_FROM_NAME || process.env.SENDGRID_FROM_NAME || '123 Quotes'
+  return `${name} <${email}>`
+}
+
 function brandVars(extra = {}) {
   const base = assetBase()
   const configured = process.env.EMAIL_LOGO_URL || ''
@@ -62,9 +70,8 @@ function buildLogoAttachment() {
   return {
     content: fs.readFileSync(file).toString('base64'),
     filename: 'logo.jpeg',
-    type: 'image/jpeg',
-    disposition: 'inline',
-    content_id: LOGO_CID,
+    contentType: 'image/jpeg',
+    contentId: LOGO_CID,
   }
 }
 
@@ -118,12 +125,9 @@ async function sendEmail({ to, templateKey, vars, type, userId, title, body }) {
     return { queued: false, mocked: true, subject: content.subject, html: content.html }
   }
 
-  const msg = {
-    to,
-    from: {
-      email: process.env.SENDGRID_FROM_EMAIL || 'noreply@123quotes.com',
-      name: process.env.SENDGRID_FROM_NAME || '123 Quotes',
-    },
+  const payload = {
+    to: Array.isArray(to) ? to : [to],
+    from: fromAddress(),
     subject: content.subject,
     html: content.html,
     text: content.text || undefined,
@@ -132,27 +136,43 @@ async function sendEmail({ to, templateKey, vars, type, userId, title, body }) {
   if (String(content.logoUrl || '').startsWith('cid:')) {
     const attachment = buildLogoAttachment()
     if (attachment) {
-      msg.attachments = [attachment]
+      payload.attachments = [attachment]
     } else {
-      console.warn('[email:sendgrid] logo file missing — emails will send without logo image')
+      console.warn('[email:resend] logo file missing — emails will send without logo image')
     }
   }
 
   try {
-    await sgMail.send(msg)
-  } catch (err) {
-    const detail = err?.response?.body || err.message
-    console.error('[email:sendgrid] failed', {
-      to,
-      from: process.env.SENDGRID_FROM_EMAIL,
-      templateKey,
-      detail,
-    })
-    throw new Error(
-      typeof detail === 'string'
-        ? detail
-        : detail?.errors?.[0]?.message || 'SendGrid email failed',
+    const { data, error } = await resend.emails.send(payload)
+    if (error) {
+      console.error('[email:resend] failed', {
+        to,
+        from: fromAddress(),
+        templateKey,
+        detail: error,
+      })
+      // Soft-fail: never break lead/request flows because email delivery failed
+      return {
+        queued: false,
+        error: error.message || 'Resend email failed',
+        subject: content.subject,
+      }
+    }
+    console.log(
+      `[email:sent] id=${data?.id || '—'} to=${to} subject=${content.subject} template=${templateKey || '—'} logo=${content.logoUrl}`,
     )
+  } catch (err) {
+    console.error('[email:resend] failed', {
+      to,
+      from: fromAddress(),
+      templateKey,
+      detail: err.message || err,
+    })
+    return {
+      queued: false,
+      error: err.message || 'Resend email failed',
+      subject: content.subject,
+    }
   }
 
   if (userId) {
@@ -162,9 +182,6 @@ async function sendEmail({ to, templateKey, vars, type, userId, title, body }) {
     })
   }
 
-  console.log(
-    `[email:sent] to=${to} subject=${content.subject} template=${templateKey || '—'} logo=${content.logoUrl}`,
-  )
   return { queued: true }
 }
 

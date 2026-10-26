@@ -25,7 +25,6 @@
   "type": "commonjs",
   "dependencies": {
     "@prisma/client": "6.16.1",
-    "@sendgrid/mail": "^8.1.6",
     "bcryptjs": "^3.0.3",
     "cors": "^2.8.6",
     "dotenv": "^17.4.2",
@@ -34,6 +33,7 @@
     "jsonwebtoken": "^9.0.3",
     "morgan": "^1.12.1",
     "multer": "^2.4.0",
+    "resend": "^6.34.1",
     "square": "^46.0.0",
     "uuid": "^14.0.2"
   },

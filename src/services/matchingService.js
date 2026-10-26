@@ -230,15 +230,19 @@ async function rematchLeadsForProfessional(professionalId, { notify = false } = 
   }
 
   if (notify && created) {
-    await sendEmail({
-      to: pro.user.email,
-      userId: pro.userId,
-      templateKey: 'new_lead',
-      type: 'NEW_LEAD',
-      title: 'Your lead matches were updated',
-      body: `${created} lead(s) now match your services and areas.`,
-      vars: { serviceName: 'your services', postcode: '', summary: '' },
-    })
+    try {
+      await sendEmail({
+        to: pro.user.email,
+        userId: pro.userId,
+        templateKey: 'new_lead',
+        type: 'NEW_LEAD',
+        title: 'Your lead matches were updated',
+        body: `${created} lead(s) now match your services and areas.`,
+        vars: { serviceName: 'your services', postcode: '', summary: '' },
+      })
+    } catch (err) {
+      console.error('[match] rematch email failed', { detail: err.message || err })
+    }
   }
 
   return { matched: qualifyIds.size, created }
@@ -356,21 +360,28 @@ async function matchProfessionalsForLead(leadId, { notify = true } = {}) {
     })
 
     if (!existing && notify) {
-      await sendEmail({
-        to: match.email,
-        userId: match.userId,
-        templateKey: 'new_lead',
-        type: 'NEW_LEAD',
-        title: 'New matching lead available',
-        body: `A new ${lead.service.name} lead is available near ${lead.postcode}.`,
-        vars: {
-          serviceName: lead.service.name,
-          postcode: lead.postcode || '',
-          summary: lead.summary || '',
-          answersHtml: answersBlockHtml,
-          answersText: answersBlockText,
-        },
-      })
+      try {
+        await sendEmail({
+          to: match.email,
+          userId: match.userId,
+          templateKey: 'new_lead',
+          type: 'NEW_LEAD',
+          title: 'New matching lead available',
+          body: `A new ${lead.service.name} lead is available near ${lead.postcode}.`,
+          vars: {
+            serviceName: lead.service.name,
+            postcode: lead.postcode || '',
+            summary: lead.summary || '',
+            answersHtml: answersBlockHtml,
+            answersText: answersBlockText,
+          },
+        })
+      } catch (err) {
+        console.error('[match] new_lead email failed (lead still matched)', {
+          professionalId: match.professionalId,
+          detail: err.message || err,
+        })
+      }
     }
   }
 
