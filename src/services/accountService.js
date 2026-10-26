@@ -40,9 +40,23 @@ async function deleteProfessionalAccount(userId) {
 }
 
 /**
- * Fully remove a CUSTOMER account. Their requests/messages/reviews are kept
- * but detached (customerId -> null via onDelete SetNull); the profile and
- * notifications cascade away with the user row.
+ * Delete every customer-owned request (and cascaded leads / answers /
+ * attachments / matches / unlocks) for a customer profile id.
+ */
+async function deleteCustomerOwnedData(tx, customerId) {
+  if (!customerId) return { requests: 0 }
+
+  // Lead + matches/unlocks cascade from CustomerRequest.delete
+  const requests = await tx.customerRequest.deleteMany({ where: { customerId } })
+  await tx.clientMessage.deleteMany({ where: { customerId } })
+  await tx.review.deleteMany({ where: { customerId } })
+
+  return { requests: requests.count }
+}
+
+/**
+ * Fully remove a CUSTOMER account AND all related details:
+ * requests, leads, answers, attachments, matches, unlocks, messages, reviews.
  */
 async function deleteCustomerAccount(userId) {
   const existing = await prisma.user.findUnique({
@@ -60,20 +74,47 @@ async function deleteCustomerAccount(userId) {
     throw err
   }
 
+  let deletedRequests = 0
+
   await prisma.$transaction(async (tx) => {
-    // Payments have no onDelete cascade — remove first
+    if (existing.customer?.id) {
+      const owned = await deleteCustomerOwnedData(tx, existing.customer.id)
+      deletedRequests = owned.requests
+    }
+
+    // Also remove orphan requests that only match by denormalized contact email
+    // (legacy imports sometimes left customerId null).
+    if (existing.email) {
+      const orphan = await tx.customerRequest.deleteMany({
+        where: {
+          customerId: null,
+          contactEmail: { equals: existing.email, mode: 'insensitive' },
+        },
+      })
+      deletedRequests += orphan.count
+    }
+
     await tx.payment.deleteMany({ where: { userId } })
 
-    // Activity logs keep history but drop the user link
     await tx.activityLog.updateMany({
       where: { userId },
       data: { userId: null },
     })
 
+    // Profile + notifications cascade with the user row
     await tx.user.delete({ where: { id: userId } })
   })
 
-  return { deleted: true, id: userId, email: existing.email }
+  return {
+    deleted: true,
+    id: userId,
+    email: existing.email,
+    deletedRequests,
+  }
 }
 
-module.exports = { deleteProfessionalAccount, deleteCustomerAccount }
+module.exports = {
+  deleteProfessionalAccount,
+  deleteCustomerAccount,
+  deleteCustomerOwnedData,
+}

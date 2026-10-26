@@ -7,6 +7,7 @@ const {
   notifyAdminsOfNewBusiness,
 } = require('../services/notificationService')
 const { applyApplicationToProfile } = require('../services/businessApplicationService')
+const { deleteCustomerAccount } = require('../services/accountService')
 
 const dashboard = asyncHandler(async (_req, res) => {
   const [customers, professionals, requests, leads, unlocks, payments, lockSetting] =
@@ -759,11 +760,12 @@ const createProfessional = asyncHandler(async (req, res) => {
 })
 
 const deleteCustomer = asyncHandler(async (req, res) => {
-  const existing = await prisma.user.findUnique({ where: { id: req.params.id } })
-  if (!existing) return fail(res, 'User not found', 404)
-  if (existing.role !== 'CUSTOMER') return fail(res, 'Not a customer account', 400)
-  await prisma.user.delete({ where: { id: req.params.id } })
-  return ok(res, { deleted: true, id: req.params.id })
+  try {
+    const result = await deleteCustomerAccount(req.params.id)
+    return ok(res, result)
+  } catch (err) {
+    return fail(res, err.message || 'Delete failed', err.status || 400)
+  }
 })
 
 const listNotifications = asyncHandler(async (req, res) => {
@@ -943,18 +945,23 @@ const deleteAllLeads = asyncHandler(async (_req, res) => {
   return ok(res, { deleted: true, count: result.count, entity: 'leads' })
 })
 
-/** Permanently delete ALL customer accounts. */
+/** Permanently delete ALL customer accounts (and their requests / leads). */
 const deleteAllCustomers = asyncHandler(async (_req, res) => {
   const users = await prisma.user.findMany({
     where: { role: 'CUSTOMER' },
     select: { id: true },
   })
-  const ids = users.map((u) => u.id)
-  if (ids.length) {
-    await prisma.payment.deleteMany({ where: { userId: { in: ids } } })
-    await prisma.user.deleteMany({ where: { id: { in: ids } } })
+  let deletedRequests = 0
+  for (const u of users) {
+    const result = await deleteCustomerAccount(u.id)
+    deletedRequests += result.deletedRequests || 0
   }
-  return ok(res, { deleted: true, count: ids.length, entity: 'customers' })
+  return ok(res, {
+    deleted: true,
+    count: users.length,
+    deletedRequests,
+    entity: 'customers',
+  })
 })
 
 /** Permanently delete ALL professional accounts. */
