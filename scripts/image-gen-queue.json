@@ -1,0 +1,871 @@
+{
+  "categories": [
+    {
+      "name": "Aerial & Drone Photography",
+      "prompt": "Photorealistic UK marketplace stock photo, natural daylight, sharp focus, no text, no logos, no watermarks, clean composition suitable for a service card. Wide scenic aerial view captured by a professional drone over a UK countryside estate and modern home roof, blue sky.",
+      "slug": "aerial-drone-photography"
+    },
+    {
+      "name": "Airport Transfers",
+      "prompt": "Photorealistic UK marketplace stock photo, natural daylight, sharp focus, no text, no logos, no watermarks, clean composition suitable for a service card. Black executive airport transfer car waiting outside a UK airport terminal with luggage trolley nearby.",
+      "slug": "airport-transfers"
+    },
+    {
+      "name": "Alarm installation",
+      "prompt": "Photorealistic UK marketplace stock photo, natural daylight, sharp focus, no text, no logos, no watermarks, clean composition suitable for a service card. Modern home security alarm control panel mounted on a wall in a contemporary UK hallway.",
+      "slug": "alarm-installation"
+    },
+    {
+      "name": "A private detective",
+      "prompt": "Photorealistic UK marketplace stock photo, natural daylight, sharp focus, no text, no logos, no watermarks, clean composition suitable for a service card. Wide establishing shot representing the \"A private detective\" trade or industry in the UK, professional and trustworthy atmosphere.",
+      "slug": "a-private-detective"
+    },
+    {
+      "name": "Auto Electrical",
+      "prompt": "Photorealistic UK marketplace stock photo, natural daylight, sharp focus, no text, no logos, no watermarks, clean composition suitable for a service card. Car engine bay showing battery and wiring harness in a clean UK garage workshop.",
+      "slug": "auto-electrical"
+    },
+    {
+      "name": "Bathroom Fitters",
+      "prompt": "Photorealistic UK marketplace stock photo, natural daylight, sharp focus, no text, no logos, no watermarks, clean composition suitable for a service card. Beautifully finished modern UK bathroom with walk-in shower, tiles, and vanity unit.",
+      "slug": "bathroom-fitters"
+    },
+    {
+      "name": "Bodyguard/Protection Services",
+      "prompt": "Photorealistic UK marketplace stock photo, natural daylight, sharp focus, no text, no logos, no watermarks, clean composition suitable for a service card. Professional close-protection officer in smart suit standing discreetly near a black executive vehicle.",
+      "slug": "bodyguard-protection-services"
+    },
+    {
+      "name": "Bus & Coach Hire",
+      "prompt": "Photorealistic UK marketplace stock photo, natural daylight, sharp focus, no text, no logos, no watermarks, clean composition suitable for a service card. Modern coach bus parked ready for hire outside a UK venue.",
+      "slug": "bus-coach-hire"
+    },
+    {
+      "name": "Car Cleaning & Valet",
+      "prompt": "Photorealistic UK marketplace stock photo, natural daylight, sharp focus, no text, no logos, no watermarks, clean composition suitable for a service card. Shiny freshly valeted car reflecting light in a professional car wash bay.",
+      "slug": "car-cleaning-valet"
+    },
+    {
+      "name": "Carpenters & Joiners",
+      "prompt": "Photorealistic UK marketplace stock photo, natural daylight, sharp focus, no text, no logos, no watermarks, clean composition suitable for a service card. Carpenter workshop with wooden furniture pieces and tools neatly arranged.",
+      "slug": "carpenters-joiners"
+    },
+    {
+      "name": "Carpet Cleaners",
+      "prompt": "Photorealistic UK marketplace stock photo, natural daylight, sharp focus, no text, no logos, no watermarks, clean composition suitable for a service card. Spotless living room carpet after professional cleaning, soft natural light.",
+      "slug": "carpet-cleaners"
+    },
+    {
+      "name": "Car traced",
+      "prompt": "Photorealistic UK marketplace stock photo, natural daylight, sharp focus, no text, no logos, no watermarks, clean composition suitable for a service card. UK street surveillance concept with camera and car number plate blurred for privacy.",
+      "slug": "car-traced"
+    },
+    {
+      "name": "CCTV Installations",
+      "prompt": "Photorealistic UK marketplace stock photo, natural daylight, sharp focus, no text, no logos, no watermarks, clean composition suitable for a service card. Exterior CCTV security camera mounted on a modern UK commercial building.",
+      "slug": "cctv-installations"
+    },
+    {
+      "name": "Cleaning Services",
+      "prompt": "Photorealistic UK marketplace stock photo, natural daylight, sharp focus, no text, no logos, no watermarks, clean composition suitable for a service card. Bright clean UK kitchen and hallway after professional domestic cleaning.",
+      "slug": "cleaning-services"
+    },
+    {
+      "name": "Computer Repair",
+      "prompt": "Photorealistic UK marketplace stock photo, natural daylight, sharp focus, no text, no logos, no watermarks, clean composition suitable for a service card. Open laptop on a repair desk with screwdrivers and spare parts organised.",
+      "slug": "computer-repair"
+    },
+    {
+      "name": "CV Writing",
+      "prompt": "Photorealistic UK marketplace stock photo, natural daylight, sharp focus, no text, no logos, no watermarks, clean composition suitable for a service card. Professional CV document and laptop on a tidy home office desk with coffee.",
+      "slug": "cv-writing"
+    },
+    {
+      "name": "Data Recovery",
+      "prompt": "Photorealistic UK marketplace stock photo, natural daylight, sharp focus, no text, no logos, no watermarks, clean composition suitable for a service card. Hard drive and SSD connected to recovery equipment in a clean tech lab.",
+      "slug": "data-recovery"
+    },
+    {
+      "name": "Debt Recovery & Collection",
+      "prompt": "Photorealistic UK marketplace stock photo, natural daylight, sharp focus, no text, no logos, no watermarks, clean composition suitable for a service card. Professional office desk with financial statements, calculator, and formal correspondence.",
+      "slug": "debt-recovery-collection"
+    },
+    {
+      "name": "Divorce Solicitors",
+      "prompt": "Photorealistic UK marketplace stock photo, natural daylight, sharp focus, no text, no logos, no watermarks, clean composition suitable for a service card. Quiet solicitor office with legal books, marriage papers, and a calm consultation table.",
+      "slug": "divorce-solicitors"
+    },
+    {
+      "name": "Dog Trainers",
+      "prompt": "Photorealistic UK marketplace stock photo, natural daylight, sharp focus, no text, no logos, no watermarks, clean composition suitable for a service card. Obedient dog sitting attentively beside a trainer in a sunny outdoor training field.",
+      "slug": "dog-trainers"
+    },
+    {
+      "name": "Dog Walkers",
+      "prompt": "Photorealistic UK marketplace stock photo, natural daylight, sharp focus, no text, no logos, no watermarks, clean composition suitable for a service card. Happy dogs on leads walking through a green UK park path.",
+      "slug": "dog-walkers"
+    },
+    {
+      "name": "Drain Unblocking",
+      "prompt": "Photorealistic UK marketplace stock photo, natural daylight, sharp focus, no text, no logos, no watermarks, clean composition suitable for a service card. Clean outdoor drain cover on a UK driveway after maintenance.",
+      "slug": "drain-unblocking"
+    },
+    {
+      "name": "Driveways & Patios",
+      "prompt": "Photorealistic UK marketplace stock photo, natural daylight, sharp focus, no text, no logos, no watermarks, clean composition suitable for a service card. Newly laid block-paved driveway and patio in front of a UK semi-detached house.",
+      "slug": "driveways-patios"
+    },
+    {
+      "name": "Editing",
+      "prompt": "Photorealistic UK marketplace stock photo, natural daylight, sharp focus, no text, no logos, no watermarks, clean composition suitable for a service card. Editing desk with manuscript pages, red pen, and laptop open to a document.",
+      "slug": "editing"
+    },
+    {
+      "name": "Electricians",
+      "prompt": "Photorealistic UK marketplace stock photo, natural daylight, sharp focus, no text, no logos, no watermarks, clean composition suitable for a service card. Consumer unit fuse box with labelled circuits in a UK utility cupboard.",
+      "slug": "electricians"
+    },
+    {
+      "name": "Employment Solicitors",
+      "prompt": "Photorealistic UK marketplace stock photo, natural daylight, sharp focus, no text, no logos, no watermarks, clean composition suitable for a service card. Modern law firm meeting room with employment contract folders on the table.",
+      "slug": "employment-solicitors"
+    },
+    {
+      "name": "Family Law & Mediation",
+      "prompt": "Photorealistic UK marketplace stock photo, natural daylight, sharp focus, no text, no logos, no watermarks, clean composition suitable for a service card. Calm mediation room with round table, water glasses, and soft natural light.",
+      "slug": "family-law-mediation"
+    },
+    {
+      "name": "Financial Advisors",
+      "prompt": "Photorealistic UK marketplace stock photo, natural daylight, sharp focus, no text, no logos, no watermarks, clean composition suitable for a service card. Financial advisor desk with charts, calculator, and retirement planning documents.",
+      "slug": "financial-advisors"
+    },
+    {
+      "name": "Florists",
+      "prompt": "Photorealistic UK marketplace stock photo, natural daylight, sharp focus, no text, no logos, no watermarks, clean composition suitable for a service card. Beautiful florist shop display filled with colourful fresh flower bouquets.",
+      "slug": "florists"
+    },
+    {
+      "name": "Gardeners",
+      "prompt": "Photorealistic UK marketplace stock photo, natural daylight, sharp focus, no text, no logos, no watermarks, clean composition suitable for a service card. Well-maintained UK garden with trimmed hedges, lawn, and flower beds.",
+      "slug": "gardeners"
+    },
+    {
+      "name": "Gas Engineers",
+      "prompt": "Photorealistic UK marketplace stock photo, natural daylight, sharp focus, no text, no logos, no watermarks, clean composition suitable for a service card. Modern combi boiler installed neatly on a utility room wall.",
+      "slug": "gas-engineers"
+    },
+    {
+      "name": "Graphic Designers (Branding, logo, business cards, leaflets)",
+      "prompt": "Photorealistic UK marketplace stock photo, natural daylight, sharp focus, no text, no logos, no watermarks, clean composition suitable for a service card. Branding mockup flat-lay: logo drafts, business cards, leaflets, and colour palette.",
+      "slug": "graphic-designers-branding-logo-business-cards-leaflets"
+    },
+    {
+      "name": "Hair Transplants/Tattoo",
+      "prompt": "Photorealistic UK marketplace stock photo, natural daylight, sharp focus, no text, no logos, no watermarks, clean composition suitable for a service card. Clean modern clinic/salon interior with treatment chair and professional lighting.",
+      "slug": "hair-transplants-tattoo"
+    },
+    {
+      "name": "Handyman",
+      "prompt": "Photorealistic UK marketplace stock photo, natural daylight, sharp focus, no text, no logos, no watermarks, clean composition suitable for a service card. Assorted handyman tools organised on a workbench: drill, hammer, screws, paint.",
+      "slug": "handyman"
+    },
+    {
+      "name": "Identity Theft",
+      "prompt": "Photorealistic UK marketplace stock photo, natural daylight, sharp focus, no text, no logos, no watermarks, clean composition suitable for a service card. Cybersecurity concept: padlock icon overlay on laptop with shredded ID documents tastefully staged.",
+      "slug": "identity-theft"
+    },
+    {
+      "name": "Immigration Law",
+      "prompt": "Photorealistic UK marketplace stock photo, natural daylight, sharp focus, no text, no logos, no watermarks, clean composition suitable for a service card. Immigration law office with passport, visa forms, and legal textbooks on a desk.",
+      "slug": "immigration-law"
+    },
+    {
+      "name": "Intellectual Property & Patent Lawyer",
+      "prompt": "Photorealistic UK marketplace stock photo, natural daylight, sharp focus, no text, no logos, no watermarks, clean composition suitable for a service card. Patent law desk with invention sketches, stamped documents, and law books.",
+      "slug": "intellectual-property-patent-lawyer"
+    },
+    {
+      "name": "International Law Specialists",
+      "prompt": "Photorealistic UK marketplace stock photo, natural daylight, sharp focus, no text, no logos, no watermarks, clean composition suitable for a service card. International law concept: world map, gavel, and multi-jurisdiction legal binders.",
+      "slug": "international-law-specialists"
+    },
+    {
+      "name": "International Legal Specialist",
+      "prompt": "Photorealistic UK marketplace stock photo, natural daylight, sharp focus, no text, no logos, no watermarks, clean composition suitable for a service card. Global legal consultancy office with glass desk and international case files.",
+      "slug": "international-legal-specialist"
+    },
+    {
+      "name": "Kitchen Fitters",
+      "prompt": "Photorealistic UK marketplace stock photo, natural daylight, sharp focus, no text, no logos, no watermarks, clean composition suitable for a service card. Brand-new fitted UK kitchen with shaker cabinets, worktops, and island.",
+      "slug": "kitchen-fitters"
+    },
+    {
+      "name": "Laser Hair Removal",
+      "prompt": "Photorealistic UK marketplace stock photo, natural daylight, sharp focus, no text, no logos, no watermarks, clean composition suitable for a service card. Modern beauty clinic room with laser hair removal machine and treatment bed.",
+      "slug": "laser-hair-removal"
+    },
+    {
+      "name": "Life Coaching",
+      "prompt": "Photorealistic UK marketplace stock photo, natural daylight, sharp focus, no text, no logos, no watermarks, clean composition suitable for a service card. Inspiring coaching session space with notebook, goals board, and warm natural light.",
+      "slug": "life-coaching"
+    },
+    {
+      "name": "Limousine Hire",
+      "prompt": "Photorealistic UK marketplace stock photo, natural daylight, sharp focus, no text, no logos, no watermarks, clean composition suitable for a service card. Long black stretch limousine parked for hire outside a UK hotel at dusk.",
+      "slug": "limousine-hire"
+    },
+    {
+      "name": "Locksmiths",
+      "prompt": "Photorealistic UK marketplace stock photo, natural daylight, sharp focus, no text, no logos, no watermarks, clean composition suitable for a service card. Close-up of a high-security door lock and keys on a wooden door.",
+      "slug": "locksmiths"
+    },
+    {
+      "name": "Marriage Counselling & Mediation",
+      "prompt": "Photorealistic UK marketplace stock photo, natural daylight, sharp focus, no text, no logos, no watermarks, clean composition suitable for a service card. Comfortable counselling room with two chairs, soft lighting, and plants.",
+      "slug": "marriage-counselling-mediation"
+    },
+    {
+      "name": "Mobile Phone Unlocking",
+      "prompt": "Photorealistic UK marketplace stock photo, natural daylight, sharp focus, no text, no logos, no watermarks, clean composition suitable for a service card. Smartphone on a tech counter with SIM tools and unlock equipment.",
+      "slug": "mobile-phone-unlocking"
+    },
+    {
+      "name": "Network, Database and IT Support",
+      "prompt": "Photorealistic UK marketplace stock photo, natural daylight, sharp focus, no text, no logos, no watermarks, clean composition suitable for a service card. Server rack with blinking network lights in a clean IT room.",
+      "slug": "network-database-and-it-support"
+    },
+    {
+      "name": "Painters & Decorators",
+      "prompt": "Photorealistic UK marketplace stock photo, natural daylight, sharp focus, no text, no logos, no watermarks, clean composition suitable for a service card. Freshly painted room with paint cans, rollers, and dust sheets on the floor.",
+      "slug": "painters-decorators"
+    },
+    {
+      "name": "Personal Trainer",
+      "prompt": "Photorealistic UK marketplace stock photo, natural daylight, sharp focus, no text, no logos, no watermarks, clean composition suitable for a service card. Modern gym interior with weights and training equipment ready for a session.",
+      "slug": "personal-trainer"
+    },
+    {
+      "name": "Pest Control",
+      "prompt": "Photorealistic UK marketplace stock photo, natural daylight, sharp focus, no text, no logos, no watermarks, clean composition suitable for a service card. Pest control technician kit with protective gear outside a UK home entrance.",
+      "slug": "pest-control"
+    },
+    {
+      "name": "Pet Groomers",
+      "prompt": "Photorealistic UK marketplace stock photo, natural daylight, sharp focus, no text, no logos, no watermarks, clean composition suitable for a service card. Pet grooming salon with fluffy freshly groomed dog on a grooming table.",
+      "slug": "pet-groomers"
+    },
+    {
+      "name": "Phone or Tablet Repair",
+      "prompt": "Photorealistic UK marketplace stock photo, natural daylight, sharp focus, no text, no logos, no watermarks, clean composition suitable for a service card. Broken smartphone screen and tools laid out on a repair mat.",
+      "slug": "phone-or-tablet-repair"
+    },
+    {
+      "name": "Photographers",
+      "prompt": "Photorealistic UK marketplace stock photo, natural daylight, sharp focus, no text, no logos, no watermarks, clean composition suitable for a service card. Professional DSLR camera and lenses on a photographer studio backdrop.",
+      "slug": "photographers"
+    },
+    {
+      "name": "Plasterers",
+      "prompt": "Photorealistic UK marketplace stock photo, natural daylight, sharp focus, no text, no logos, no watermarks, clean composition suitable for a service card. Smooth freshly plastered wall in a renovated UK room.",
+      "slug": "plasterers"
+    },
+    {
+      "name": "Plumber",
+      "prompt": "Photorealistic UK marketplace stock photo, natural daylight, sharp focus, no text, no logos, no watermarks, clean composition suitable for a service card. Chrome bathroom plumbing fixtures and pipes under a sink.",
+      "slug": "plumber"
+    },
+    {
+      "name": "Plumbers",
+      "prompt": "Photorealistic UK marketplace stock photo, natural daylight, sharp focus, no text, no logos, no watermarks, clean composition suitable for a service card. Professional plumbing van tools and copper pipes organised for a job.",
+      "slug": "plumbers"
+    },
+    {
+      "name": "private detective",
+      "prompt": "Photorealistic UK marketplace stock photo, natural daylight, sharp focus, no text, no logos, no watermarks, clean composition suitable for a service card. Noir-inspired private detective office with desk lamp, fedora, and case files, tasteful.",
+      "slug": "private-detective"
+    },
+    {
+      "name": "Private investigator",
+      "prompt": "Photorealistic UK marketplace stock photo, natural daylight, sharp focus, no text, no logos, no watermarks, clean composition suitable for a service card. Modern private investigator workspace with dual monitors and evidence folders.",
+      "slug": "private-investigator"
+    },
+    {
+      "name": "Private Investigators",
+      "prompt": "Photorealistic UK marketplace stock photo, natural daylight, sharp focus, no text, no logos, no watermarks, clean composition suitable for a service card. Team investigation room with maps, photos, and secure filing cabinets.",
+      "slug": "private-investigators"
+    },
+    {
+      "name": "Property Solicitors",
+      "prompt": "Photorealistic UK marketplace stock photo, natural daylight, sharp focus, no text, no logos, no watermarks, clean composition suitable for a service card. Property conveyancing desk with house keys, contracts, and property brochure.",
+      "slug": "property-solicitors"
+    },
+    {
+      "name": "Psychologist/ Therapist",
+      "prompt": "Photorealistic UK marketplace stock photo, natural daylight, sharp focus, no text, no logos, no watermarks, clean composition suitable for a service card. Calm therapy room with comfortable armchair, tissues, and soft lighting.",
+      "slug": "psychologist-therapist"
+    },
+    {
+      "name": "Removal Companies",
+      "prompt": "Photorealistic UK marketplace stock photo, natural daylight, sharp focus, no text, no logos, no watermarks, clean composition suitable for a service card. Removal van parked outside a UK house with stacked moving boxes.",
+      "slug": "removal-companies"
+    },
+    {
+      "name": "Roofers",
+      "prompt": "Photorealistic UK marketplace stock photo, natural daylight, sharp focus, no text, no logos, no watermarks, clean composition suitable for a service card. Newly tiled pitched roof on a UK house against a blue sky.",
+      "slug": "roofers"
+    },
+    {
+      "name": "Scaffolders",
+      "prompt": "Photorealistic UK marketplace stock photo, natural daylight, sharp focus, no text, no logos, no watermarks, clean composition suitable for a service card. Full scaffolding erected around a UK terrace house renovation.",
+      "slug": "scaffolders"
+    },
+    {
+      "name": "Shoe Repair",
+      "prompt": "Photorealistic UK marketplace stock photo, natural daylight, sharp focus, no text, no logos, no watermarks, clean composition suitable for a service card. Cobbler workbench with leather shoes, polish, and repair tools.",
+      "slug": "shoe-repair"
+    },
+    {
+      "name": "Software Development",
+      "prompt": "Photorealistic UK marketplace stock photo, natural daylight, sharp focus, no text, no logos, no watermarks, clean composition suitable for a service card. Developer desk with multiple monitors showing clean code and UI mockups.",
+      "slug": "software-development"
+    },
+    {
+      "name": "Stationery Printers",
+      "prompt": "Photorealistic UK marketplace stock photo, natural daylight, sharp focus, no text, no logos, no watermarks, clean composition suitable for a service card. Printed business stationery stack: letterheads, envelopes, and branded notepads.",
+      "slug": "stationery-printers"
+    },
+    {
+      "name": "Surveillance",
+      "prompt": "Photorealistic UK marketplace stock photo, natural daylight, sharp focus, no text, no logos, no watermarks, clean composition suitable for a service card. Professional surveillance camera equipment and monitors in a control room.",
+      "slug": "surveillance"
+    },
+    {
+      "name": "Tattoo Artists & Removals",
+      "prompt": "Photorealistic UK marketplace stock photo, natural daylight, sharp focus, no text, no logos, no watermarks, clean composition suitable for a service card. Clean tattoo studio interior with chairs, ink stations, and sterilisation area.",
+      "slug": "tattoo-artists-removals"
+    },
+    {
+      "name": "Telephone System Services",
+      "prompt": "Photorealistic UK marketplace stock photo, natural daylight, sharp focus, no text, no logos, no watermarks, clean composition suitable for a service card. Modern office VoIP phone system on a reception desk.",
+      "slug": "telephone-system-services"
+    },
+    {
+      "name": "Tilers",
+      "prompt": "Photorealistic UK marketplace stock photo, natural daylight, sharp focus, no text, no logos, no watermarks, clean composition suitable for a service card. Beautifully tiled bathroom wall with precise grout lines.",
+      "slug": "tilers"
+    },
+    {
+      "name": "Translation",
+      "prompt": "Photorealistic UK marketplace stock photo, natural daylight, sharp focus, no text, no logos, no watermarks, clean composition suitable for a service card. Translation desk with bilingual documents, dictionary, and laptop.",
+      "slug": "translation"
+    },
+    {
+      "name": "Tree Surgeons",
+      "prompt": "Photorealistic UK marketplace stock photo, natural daylight, sharp focus, no text, no logos, no watermarks, clean composition suitable for a service card. Large tree being professionally pruned in a UK garden with chipper nearby.",
+      "slug": "tree-surgeons"
+    },
+    {
+      "name": "Vehicle Bodyshop",
+      "prompt": "Photorealistic UK marketplace stock photo, natural daylight, sharp focus, no text, no logos, no watermarks, clean composition suitable for a service card. Car bodyshop bay with vehicle in primer paint and spray booth visible.",
+      "slug": "vehicle-bodyshop"
+    },
+    {
+      "name": "Vehicle Hire",
+      "prompt": "Photorealistic UK marketplace stock photo, natural daylight, sharp focus, no text, no logos, no watermarks, clean composition suitable for a service card. Row of clean hire cars parked in a rental depot lot.",
+      "slug": "vehicle-hire"
+    },
+    {
+      "name": "Vehicle Mechanic",
+      "prompt": "Photorealistic UK marketplace stock photo, natural daylight, sharp focus, no text, no logos, no watermarks, clean composition suitable for a service card. Car on a hydraulic lift in a busy UK MOT garage.",
+      "slug": "vehicle-mechanic"
+    },
+    {
+      "name": "Vehicle Window Tinting",
+      "prompt": "Photorealistic UK marketplace stock photo, natural daylight, sharp focus, no text, no logos, no watermarks, clean composition suitable for a service card. Car with freshly tinted windows parked outside a tinting workshop.",
+      "slug": "vehicle-window-tinting"
+    },
+    {
+      "name": "Vets",
+      "prompt": "Photorealistic UK marketplace stock photo, natural daylight, sharp focus, no text, no logos, no watermarks, clean composition suitable for a service card. Veterinary clinic consultation room with examination table and pet care equipment.",
+      "slug": "vets"
+    },
+    {
+      "name": "web design",
+      "prompt": "Photorealistic UK marketplace stock photo, natural daylight, sharp focus, no text, no logos, no watermarks, clean composition suitable for a service card. Creative web design moodboard with UI kits, fonts, and device mockups.",
+      "slug": "web-design"
+    },
+    {
+      "name": "Web Development",
+      "prompt": "Photorealistic UK marketplace stock photo, natural daylight, sharp focus, no text, no logos, no watermarks, clean composition suitable for a service card. Full-stack development workspace with code editor and browser preview side by side.",
+      "slug": "web-development"
+    },
+    {
+      "name": "Website Copywriting",
+      "prompt": "Photorealistic UK marketplace stock photo, natural daylight, sharp focus, no text, no logos, no watermarks, clean composition suitable for a service card. Copywriting desk with website content outline and keyword notes.",
+      "slug": "website-copywriting"
+    },
+    {
+      "name": "wedding photographer",
+      "prompt": "Photorealistic UK marketplace stock photo, natural daylight, sharp focus, no text, no logos, no watermarks, clean composition suitable for a service card. Romantic wedding couple being photographed outdoors in soft golden light.",
+      "slug": "wedding-photographer"
+    },
+    {
+      "name": "Wedding Photography",
+      "prompt": "Photorealistic UK marketplace stock photo, natural daylight, sharp focus, no text, no logos, no watermarks, clean composition suitable for a service card. Beautiful wedding album flat-lay with rings, bouquet, and printed photos.",
+      "slug": "wedding-photography"
+    },
+    {
+      "name": "Wills and Estate Planning",
+      "prompt": "Photorealistic UK marketplace stock photo, natural daylight, sharp focus, no text, no logos, no watermarks, clean composition suitable for a service card. Estate planning desk with will documents, fountain pen, and family photo frame.",
+      "slug": "wills-and-estate-planning"
+    },
+    {
+      "name": "Window Fitters",
+      "prompt": "Photorealistic UK marketplace stock photo, natural daylight, sharp focus, no text, no logos, no watermarks, clean composition suitable for a service card. Newly installed double-glazed uPVC windows on a UK house exterior.",
+      "slug": "window-fitters"
+    },
+    {
+      "name": "Writing Services",
+      "prompt": "Photorealistic UK marketplace stock photo, natural daylight, sharp focus, no text, no logos, no watermarks, clean composition suitable for a service card. Writer desk with notebook, fountain pen, laptop, and reference books.",
+      "slug": "writing-services"
+    }
+  ],
+  "services": [
+    {
+      "name": "Aerial & Drone Photography",
+      "prompt": "Photorealistic UK marketplace stock photo, natural daylight, sharp focus, no text, no logos, no watermarks, clean composition suitable for a service card. Close-up of a professional camera drone taking off from a grassy field with operator in background, UK setting.",
+      "slug": "aerial-drone-photography"
+    },
+    {
+      "name": "Airport Transfers",
+      "prompt": "Photorealistic UK marketplace stock photo, natural daylight, sharp focus, no text, no logos, no watermarks, clean composition suitable for a service card. Chauffeur loading suitcases into the boot of a premium black transfer car at an airport kerb.",
+      "slug": "airport-transfers"
+    },
+    {
+      "name": "Alarm installation",
+      "prompt": "Photorealistic UK marketplace stock photo, natural daylight, sharp focus, no text, no logos, no watermarks, clean composition suitable for a service card. Technician installing a wireless burglar alarm sensor above a door frame with tools in hand.",
+      "slug": "alarm-installation"
+    },
+    {
+      "name": "A private detective",
+      "prompt": "Photorealistic UK marketplace stock photo, natural daylight, sharp focus, no text, no logos, no watermarks, clean composition suitable for a service card. Close-up action shot of a skilled professional performing \"A private detective\" work for a UK customer, authentic and useful.",
+      "slug": "a-private-detective"
+    },
+    {
+      "name": "Auto Electrical",
+      "prompt": "Photorealistic UK marketplace stock photo, natural daylight, sharp focus, no text, no logos, no watermarks, clean composition suitable for a service card. Auto electrician diagnosing vehicle electrical faults with a multimeter under a car bonnet.",
+      "slug": "auto-electrical"
+    },
+    {
+      "name": "Bathroom Fitters",
+      "prompt": "Photorealistic UK marketplace stock photo, natural daylight, sharp focus, no text, no logos, no watermarks, clean composition suitable for a service card. Bathroom fitter installing a new sink and taps wearing work clothes in a renovation room.",
+      "slug": "bathroom-fitters"
+    },
+    {
+      "name": "Bodyguard/Protection Services",
+      "prompt": "Photorealistic UK marketplace stock photo, natural daylight, sharp focus, no text, no logos, no watermarks, clean composition suitable for a service card. Bodyguard scanning surroundings while escorting a client from a building entrance, tasteful corporate look.",
+      "slug": "bodyguard-protection-services"
+    },
+    {
+      "name": "Bus & Coach Hire",
+      "prompt": "Photorealistic UK marketplace stock photo, natural daylight, sharp focus, no text, no logos, no watermarks, clean composition suitable for a service card. Passengers boarding a hired coach with driver assisting at the door.",
+      "slug": "bus-coach-hire"
+    },
+    {
+      "name": "Car Cleaning & Valet",
+      "prompt": "Photorealistic UK marketplace stock photo, natural daylight, sharp focus, no text, no logos, no watermarks, clean composition suitable for a service card. Detailer polishing a car bonnet with microfibre cloth during a full valet.",
+      "slug": "car-cleaning-valet"
+    },
+    {
+      "name": "Carpenters & Joiners",
+      "prompt": "Photorealistic UK marketplace stock photo, natural daylight, sharp focus, no text, no logos, no watermarks, clean composition suitable for a service card. Joiner carefully cutting hardwood with a hand saw on a workbench.",
+      "slug": "carpenters-joiners"
+    },
+    {
+      "name": "Carpet Cleaners",
+      "prompt": "Photorealistic UK marketplace stock photo, natural daylight, sharp focus, no text, no logos, no watermarks, clean composition suitable for a service card. Carpet cleaning technician operating a steam cleaner wand on a patterned rug.",
+      "slug": "carpet-cleaners"
+    },
+    {
+      "name": "Car traced",
+      "prompt": "Photorealistic UK marketplace stock photo, natural daylight, sharp focus, no text, no logos, no watermarks, clean composition suitable for a service card. Investigator checking vehicle records on a tablet next to a parked car, professional look.",
+      "slug": "car-traced"
+    },
+    {
+      "name": "CCTV Installations",
+      "prompt": "Photorealistic UK marketplace stock photo, natural daylight, sharp focus, no text, no logos, no watermarks, clean composition suitable for a service card. Technician on a ladder installing a dome CCTV camera above an entrance.",
+      "slug": "cctv-installations"
+    },
+    {
+      "name": "Cleaning Services",
+      "prompt": "Photorealistic UK marketplace stock photo, natural daylight, sharp focus, no text, no logos, no watermarks, clean composition suitable for a service card. Cleaner mopping a polished floor with eco-friendly cleaning products nearby.",
+      "slug": "cleaning-services"
+    },
+    {
+      "name": "Computer Repair",
+      "prompt": "Photorealistic UK marketplace stock photo, natural daylight, sharp focus, no text, no logos, no watermarks, clean composition suitable for a service card. IT technician repairing a laptop motherboard with precision tools.",
+      "slug": "computer-repair"
+    },
+    {
+      "name": "CV Writing",
+      "prompt": "Photorealistic UK marketplace stock photo, natural daylight, sharp focus, no text, no logos, no watermarks, clean composition suitable for a service card. Career writer editing a CV on screen with red pen notes on printed draft.",
+      "slug": "cv-writing"
+    },
+    {
+      "name": "Data Recovery",
+      "prompt": "Photorealistic UK marketplace stock photo, natural daylight, sharp focus, no text, no logos, no watermarks, clean composition suitable for a service card. Technician recovering files from a damaged hard drive using specialised software.",
+      "slug": "data-recovery"
+    },
+    {
+      "name": "Debt Recovery & Collection",
+      "prompt": "Photorealistic UK marketplace stock photo, natural daylight, sharp focus, no text, no logos, no watermarks, clean composition suitable for a service card. Debt recovery advisor reviewing account files with a client in a meeting room.",
+      "slug": "debt-recovery-collection"
+    },
+    {
+      "name": "Divorce Solicitors",
+      "prompt": "Photorealistic UK marketplace stock photo, natural daylight, sharp focus, no text, no logos, no watermarks, clean composition suitable for a service card. Divorce solicitor discussing documents with a client across a wooden desk, respectful tone.",
+      "slug": "divorce-solicitors"
+    },
+    {
+      "name": "Dog Trainers",
+      "prompt": "Photorealistic UK marketplace stock photo, natural daylight, sharp focus, no text, no logos, no watermarks, clean composition suitable for a service card. Dog trainer rewarding a dog with a treat after a successful command.",
+      "slug": "dog-trainers"
+    },
+    {
+      "name": "Dog Walkers",
+      "prompt": "Photorealistic UK marketplace stock photo, natural daylight, sharp focus, no text, no logos, no watermarks, clean composition suitable for a service card. Professional dog walker with several dogs on a countryside footpath.",
+      "slug": "dog-walkers"
+    },
+    {
+      "name": "Drain Unblocking",
+      "prompt": "Photorealistic UK marketplace stock photo, natural daylight, sharp focus, no text, no logos, no watermarks, clean composition suitable for a service card. Drainage engineer using a drain rod and jetter hose at a blocked outdoor drain.",
+      "slug": "drain-unblocking"
+    },
+    {
+      "name": "Driveways & Patios",
+      "prompt": "Photorealistic UK marketplace stock photo, natural daylight, sharp focus, no text, no logos, no watermarks, clean composition suitable for a service card. Landscaper laying patio slabs with a rubber mallet and spirit level.",
+      "slug": "driveways-patios"
+    },
+    {
+      "name": "Editing",
+      "prompt": "Photorealistic UK marketplace stock photo, natural daylight, sharp focus, no text, no logos, no watermarks, clean composition suitable for a service card. Editor proofreading text on a dual-monitor setup in a quiet study.",
+      "slug": "editing"
+    },
+    {
+      "name": "Electricians",
+      "prompt": "Photorealistic UK marketplace stock photo, natural daylight, sharp focus, no text, no logos, no watermarks, clean composition suitable for a service card. Electrician wiring a ceiling light fitting with insulated tools and PPE.",
+      "slug": "electricians"
+    },
+    {
+      "name": "Employment Solicitors",
+      "prompt": "Photorealistic UK marketplace stock photo, natural daylight, sharp focus, no text, no logos, no watermarks, clean composition suitable for a service card. Employment solicitor advising a client with legal notepad and laptop open.",
+      "slug": "employment-solicitors"
+    },
+    {
+      "name": "Family Law & Mediation",
+      "prompt": "Photorealistic UK marketplace stock photo, natural daylight, sharp focus, no text, no logos, no watermarks, clean composition suitable for a service card. Family mediator facilitating a respectful discussion between two people at a table.",
+      "slug": "family-law-mediation"
+    },
+    {
+      "name": "Financial Advisors",
+      "prompt": "Photorealistic UK marketplace stock photo, natural daylight, sharp focus, no text, no logos, no watermarks, clean composition suitable for a service card. Advisor explaining investment graphs on a tablet to a client.",
+      "slug": "financial-advisors"
+    },
+    {
+      "name": "Florists",
+      "prompt": "Photorealistic UK marketplace stock photo, natural daylight, sharp focus, no text, no logos, no watermarks, clean composition suitable for a service card. Florist arranging roses and greenery into a hand-tied bouquet at a workbench.",
+      "slug": "florists"
+    },
+    {
+      "name": "Gardeners",
+      "prompt": "Photorealistic UK marketplace stock photo, natural daylight, sharp focus, no text, no logos, no watermarks, clean composition suitable for a service card. Gardener pruning shrubs with secateurs in a sunny backyard.",
+      "slug": "gardeners"
+    },
+    {
+      "name": "Gas Engineers",
+      "prompt": "Photorealistic UK marketplace stock photo, natural daylight, sharp focus, no text, no logos, no watermarks, clean composition suitable for a service card. Gas engineer servicing a boiler with gauges and tools, wearing branded workwear.",
+      "slug": "gas-engineers"
+    },
+    {
+      "name": "Graphic Designers (Branding, logo, business cards, leaflets)",
+      "prompt": "Photorealistic UK marketplace stock photo, natural daylight, sharp focus, no text, no logos, no watermarks, clean composition suitable for a service card. Graphic designer crafting a logo on a computer with tablet stylus in hand.",
+      "slug": "graphic-designers-branding-logo-business-cards-leaflets"
+    },
+    {
+      "name": "Hair Transplants/Tattoo",
+      "prompt": "Photorealistic UK marketplace stock photo, natural daylight, sharp focus, no text, no logos, no watermarks, clean composition suitable for a service card. Cosmetic technician preparing a sterile treatment tray in a clinical beauty room.",
+      "slug": "hair-transplants-tattoo"
+    },
+    {
+      "name": "Handyman",
+      "prompt": "Photorealistic UK marketplace stock photo, natural daylight, sharp focus, no text, no logos, no watermarks, clean composition suitable for a service card. Handyman fixing a door hinge with a cordless drill in a UK home hallway.",
+      "slug": "handyman"
+    },
+    {
+      "name": "Identity Theft",
+      "prompt": "Photorealistic UK marketplace stock photo, natural daylight, sharp focus, no text, no logos, no watermarks, clean composition suitable for a service card. Security specialist advising a client about identity protection on a laptop screen.",
+      "slug": "identity-theft"
+    },
+    {
+      "name": "Immigration Law",
+      "prompt": "Photorealistic UK marketplace stock photo, natural daylight, sharp focus, no text, no logos, no watermarks, clean composition suitable for a service card. Immigration solicitor reviewing visa application paperwork with a client.",
+      "slug": "immigration-law"
+    },
+    {
+      "name": "Intellectual Property & Patent Lawyer",
+      "prompt": "Photorealistic UK marketplace stock photo, natural daylight, sharp focus, no text, no logos, no watermarks, clean composition suitable for a service card. IP lawyer examining a patent filing document under desk lamp light.",
+      "slug": "intellectual-property-patent-lawyer"
+    },
+    {
+      "name": "International Law Specialists",
+      "prompt": "Photorealistic UK marketplace stock photo, natural daylight, sharp focus, no text, no logos, no watermarks, clean composition suitable for a service card. International lawyer in a boardroom with global flags subtle in background.",
+      "slug": "international-law-specialists"
+    },
+    {
+      "name": "International Legal Specialist",
+      "prompt": "Photorealistic UK marketplace stock photo, natural daylight, sharp focus, no text, no logos, no watermarks, clean composition suitable for a service card. Legal specialist on a video call advising overseas clients from a modern office.",
+      "slug": "international-legal-specialist"
+    },
+    {
+      "name": "Kitchen Fitters",
+      "prompt": "Photorealistic UK marketplace stock photo, natural daylight, sharp focus, no text, no logos, no watermarks, clean composition suitable for a service card. Kitchen fitter installing cabinet units with spirit level and drill.",
+      "slug": "kitchen-fitters"
+    },
+    {
+      "name": "Laser Hair Removal",
+      "prompt": "Photorealistic UK marketplace stock photo, natural daylight, sharp focus, no text, no logos, no watermarks, clean composition suitable for a service card. Beautician performing laser hair removal on a client arm in a clinical setting.",
+      "slug": "laser-hair-removal"
+    },
+    {
+      "name": "Life Coaching",
+      "prompt": "Photorealistic UK marketplace stock photo, natural daylight, sharp focus, no text, no logos, no watermarks, clean composition suitable for a service card. Life coach mentoring a client with open notebooks in a bright café-style room.",
+      "slug": "life-coaching"
+    },
+    {
+      "name": "Limousine Hire",
+      "prompt": "Photorealistic UK marketplace stock photo, natural daylight, sharp focus, no text, no logos, no watermarks, clean composition suitable for a service card. Chauffeur opening limousine door for passengers dressed for a special occasion.",
+      "slug": "limousine-hire"
+    },
+    {
+      "name": "Locksmiths",
+      "prompt": "Photorealistic UK marketplace stock photo, natural daylight, sharp focus, no text, no logos, no watermarks, clean composition suitable for a service card. Locksmith picking and replacing a lock cylinder with professional tools.",
+      "slug": "locksmiths"
+    },
+    {
+      "name": "Marriage Counselling & Mediation",
+      "prompt": "Photorealistic UK marketplace stock photo, natural daylight, sharp focus, no text, no logos, no watermarks, clean composition suitable for a service card. Marriage counsellor facilitating a calm conversation between a couple.",
+      "slug": "marriage-counselling-mediation"
+    },
+    {
+      "name": "Mobile Phone Unlocking",
+      "prompt": "Photorealistic UK marketplace stock photo, natural daylight, sharp focus, no text, no logos, no watermarks, clean composition suitable for a service card. Technician unlocking a mobile phone connected to diagnostic software.",
+      "slug": "mobile-phone-unlocking"
+    },
+    {
+      "name": "Network, Database and IT Support",
+      "prompt": "Photorealistic UK marketplace stock photo, natural daylight, sharp focus, no text, no logos, no watermarks, clean composition suitable for a service card. IT support engineer configuring network switches with laptop connected.",
+      "slug": "network-database-and-it-support"
+    },
+    {
+      "name": "Painters & Decorators",
+      "prompt": "Photorealistic UK marketplace stock photo, natural daylight, sharp focus, no text, no logos, no watermarks, clean composition suitable for a service card. Painter rolling emulsion paint onto a wall with professional technique.",
+      "slug": "painters-decorators"
+    },
+    {
+      "name": "Personal Trainer",
+      "prompt": "Photorealistic UK marketplace stock photo, natural daylight, sharp focus, no text, no logos, no watermarks, clean composition suitable for a service card. Personal trainer coaching a client through kettlebell exercises.",
+      "slug": "personal-trainer"
+    },
+    {
+      "name": "Pest Control",
+      "prompt": "Photorealistic UK marketplace stock photo, natural daylight, sharp focus, no text, no logos, no watermarks, clean composition suitable for a service card. Pest controller treating skirting boards with professional spray equipment.",
+      "slug": "pest-control"
+    },
+    {
+      "name": "Pet Groomers",
+      "prompt": "Photorealistic UK marketplace stock photo, natural daylight, sharp focus, no text, no logos, no watermarks, clean composition suitable for a service card. Groomer trimming a dog coat with clippers and scissors.",
+      "slug": "pet-groomers"
+    },
+    {
+      "name": "Phone or Tablet Repair",
+      "prompt": "Photorealistic UK marketplace stock photo, natural daylight, sharp focus, no text, no logos, no watermarks, clean composition suitable for a service card. Repair technician replacing a phone screen under a magnifying lamp.",
+      "slug": "phone-or-tablet-repair"
+    },
+    {
+      "name": "Photographers",
+      "prompt": "Photorealistic UK marketplace stock photo, natural daylight, sharp focus, no text, no logos, no watermarks, clean composition suitable for a service card. Photographer capturing a portrait session with softbox lighting.",
+      "slug": "photographers"
+    },
+    {
+      "name": "Plasterers",
+      "prompt": "Photorealistic UK marketplace stock photo, natural daylight, sharp focus, no text, no logos, no watermarks, clean composition suitable for a service card. Plasterer applying wet plaster with a hawk and trowel.",
+      "slug": "plasterers"
+    },
+    {
+      "name": "Plumber",
+      "prompt": "Photorealistic UK marketplace stock photo, natural daylight, sharp focus, no text, no logos, no watermarks, clean composition suitable for a service card. Plumber fixing a leaking pipe under a kitchen sink with wrench.",
+      "slug": "plumber"
+    },
+    {
+      "name": "Plumbers",
+      "prompt": "Photorealistic UK marketplace stock photo, natural daylight, sharp focus, no text, no logos, no watermarks, clean composition suitable for a service card. Plumber installing a new radiator with pipe cutters and fittings.",
+      "slug": "plumbers"
+    },
+    {
+      "name": "private detective",
+      "prompt": "Photorealistic UK marketplace stock photo, natural daylight, sharp focus, no text, no logos, no watermarks, clean composition suitable for a service card. Detective photographing a street scene discreetly with a compact camera.",
+      "slug": "private-detective"
+    },
+    {
+      "name": "Private investigator",
+      "prompt": "Photorealistic UK marketplace stock photo, natural daylight, sharp focus, no text, no logos, no watermarks, clean composition suitable for a service card. Private investigator analysing location data on a tablet in the field.",
+      "slug": "private-investigator"
+    },
+    {
+      "name": "Private Investigators",
+      "prompt": "Photorealistic UK marketplace stock photo, natural daylight, sharp focus, no text, no logos, no watermarks, clean composition suitable for a service card. Two investigators comparing notes during a case briefing.",
+      "slug": "private-investigators"
+    },
+    {
+      "name": "Property Solicitors",
+      "prompt": "Photorealistic UK marketplace stock photo, natural daylight, sharp focus, no text, no logos, no watermarks, clean composition suitable for a service card. Property solicitor handing house keys after completing a sale.",
+      "slug": "property-solicitors"
+    },
+    {
+      "name": "Psychologist/ Therapist",
+      "prompt": "Photorealistic UK marketplace stock photo, natural daylight, sharp focus, no text, no logos, no watermarks, clean composition suitable for a service card. Therapist listening attentively to a client in a private counselling session.",
+      "slug": "psychologist-therapist"
+    },
+    {
+      "name": "Removal Companies",
+      "prompt": "Photorealistic UK marketplace stock photo, natural daylight, sharp focus, no text, no logos, no watermarks, clean composition suitable for a service card. Removal workers carefully carrying a sofa out of a front door.",
+      "slug": "removal-companies"
+    },
+    {
+      "name": "Roofers",
+      "prompt": "Photorealistic UK marketplace stock photo, natural daylight, sharp focus, no text, no logos, no watermarks, clean composition suitable for a service card. Roofer replacing broken tiles while secured with safety harness.",
+      "slug": "roofers"
+    },
+    {
+      "name": "Scaffolders",
+      "prompt": "Photorealistic UK marketplace stock photo, natural daylight, sharp focus, no text, no logos, no watermarks, clean composition suitable for a service card. Scaffolder assembling metal poles and boards at height with PPE.",
+      "slug": "scaffolders"
+    },
+    {
+      "name": "Shoe Repair",
+      "prompt": "Photorealistic UK marketplace stock photo, natural daylight, sharp focus, no text, no logos, no watermarks, clean composition suitable for a service card. Shoe repairer restitching a leather sole on a lasting machine.",
+      "slug": "shoe-repair"
+    },
+    {
+      "name": "Software Development",
+      "prompt": "Photorealistic UK marketplace stock photo, natural daylight, sharp focus, no text, no logos, no watermarks, clean composition suitable for a service card. Software developer typing code on a laptop in a modern tech office.",
+      "slug": "software-development"
+    },
+    {
+      "name": "Stationery Printers",
+      "prompt": "Photorealistic UK marketplace stock photo, natural daylight, sharp focus, no text, no logos, no watermarks, clean composition suitable for a service card. Print technician checking colour proofs from a commercial printer.",
+      "slug": "stationery-printers"
+    },
+    {
+      "name": "Surveillance",
+      "prompt": "Photorealistic UK marketplace stock photo, natural daylight, sharp focus, no text, no logos, no watermarks, clean composition suitable for a service card. Surveillance operative monitoring live feeds on multiple screens.",
+      "slug": "surveillance"
+    },
+    {
+      "name": "Tattoo Artists & Removals",
+      "prompt": "Photorealistic UK marketplace stock photo, natural daylight, sharp focus, no text, no logos, no watermarks, clean composition suitable for a service card. Tattoo artist carefully inking a design on a client arm with rotary machine.",
+      "slug": "tattoo-artists-removals"
+    },
+    {
+      "name": "Telephone System Services",
+      "prompt": "Photorealistic UK marketplace stock photo, natural daylight, sharp focus, no text, no logos, no watermarks, clean composition suitable for a service card. Telecom engineer installing a business telephone handset and wiring.",
+      "slug": "telephone-system-services"
+    },
+    {
+      "name": "Tilers",
+      "prompt": "Photorealistic UK marketplace stock photo, natural daylight, sharp focus, no text, no logos, no watermarks, clean composition suitable for a service card. Tiler placing ceramic tiles on a wall with adhesive and spacers.",
+      "slug": "tilers"
+    },
+    {
+      "name": "Translation",
+      "prompt": "Photorealistic UK marketplace stock photo, natural daylight, sharp focus, no text, no logos, no watermarks, clean composition suitable for a service card. Translator working between two language documents on dual screens.",
+      "slug": "translation"
+    },
+    {
+      "name": "Tree Surgeons",
+      "prompt": "Photorealistic UK marketplace stock photo, natural daylight, sharp focus, no text, no logos, no watermarks, clean composition suitable for a service card. Tree surgeon in harness cutting a branch with a chainsaw, safety gear on.",
+      "slug": "tree-surgeons"
+    },
+    {
+      "name": "Vehicle Bodyshop",
+      "prompt": "Photorealistic UK marketplace stock photo, natural daylight, sharp focus, no text, no logos, no watermarks, clean composition suitable for a service card. Bodywork technician sanding a car panel before respray.",
+      "slug": "vehicle-bodyshop"
+    },
+    {
+      "name": "Vehicle Hire",
+      "prompt": "Photorealistic UK marketplace stock photo, natural daylight, sharp focus, no text, no logos, no watermarks, clean composition suitable for a service card. Customer collecting rental car keys at a vehicle hire counter.",
+      "slug": "vehicle-hire"
+    },
+    {
+      "name": "Vehicle Mechanic",
+      "prompt": "Photorealistic UK marketplace stock photo, natural daylight, sharp focus, no text, no logos, no watermarks, clean composition suitable for a service card. Mechanic replacing brake pads under a raised vehicle.",
+      "slug": "vehicle-mechanic"
+    },
+    {
+      "name": "Vehicle Window Tinting",
+      "prompt": "Photorealistic UK marketplace stock photo, natural daylight, sharp focus, no text, no logos, no watermarks, clean composition suitable for a service card. Technician applying window tint film carefully to a car side window.",
+      "slug": "vehicle-window-tinting"
+    },
+    {
+      "name": "Vets",
+      "prompt": "Photorealistic UK marketplace stock photo, natural daylight, sharp focus, no text, no logos, no watermarks, clean composition suitable for a service card. Vet gently examining a dog on a clinic table with stethoscope.",
+      "slug": "vets"
+    },
+    {
+      "name": "web design",
+      "prompt": "Photorealistic UK marketplace stock photo, natural daylight, sharp focus, no text, no logos, no watermarks, clean composition suitable for a service card. Web designer crafting a homepage layout in design software.",
+      "slug": "web-design"
+    },
+    {
+      "name": "web design 2",
+      "prompt": "Photorealistic UK marketplace stock photo, natural daylight, sharp focus, no text, no logos, no watermarks, clean composition suitable for a service card. Designer prototyping mobile app screens on a tablet next to a desktop.",
+      "slug": "web-design-2"
+    },
+    {
+      "name": "Web Development",
+      "prompt": "Photorealistic UK marketplace stock photo, natural daylight, sharp focus, no text, no logos, no watermarks, clean composition suitable for a service card. Web developer debugging frontend code with Chrome DevTools open.",
+      "slug": "web-development"
+    },
+    {
+      "name": "Website Copywriting",
+      "prompt": "Photorealistic UK marketplace stock photo, natural daylight, sharp focus, no text, no logos, no watermarks, clean composition suitable for a service card. Copywriter crafting website headlines on a laptop with sticky notes.",
+      "slug": "website-copywriting"
+    },
+    {
+      "name": "wedding photographer",
+      "prompt": "Photorealistic UK marketplace stock photo, natural daylight, sharp focus, no text, no logos, no watermarks, clean composition suitable for a service card. Wedding photographer capturing a first dance moment with flash and camera.",
+      "slug": "wedding-photographer"
+    },
+    {
+      "name": "Wedding Photography",
+      "prompt": "Photorealistic UK marketplace stock photo, natural daylight, sharp focus, no text, no logos, no watermarks, clean composition suitable for a service card. Photographer shooting candid wedding reception moments.",
+      "slug": "wedding-photography"
+    },
+    {
+      "name": "Wills and Estate Planning",
+      "prompt": "Photorealistic UK marketplace stock photo, natural daylight, sharp focus, no text, no logos, no watermarks, clean composition suitable for a service card. Solicitor discussing will and estate documents with an older couple.",
+      "slug": "wills-and-estate-planning"
+    },
+    {
+      "name": "Window Fitters",
+      "prompt": "Photorealistic UK marketplace stock photo, natural daylight, sharp focus, no text, no logos, no watermarks, clean composition suitable for a service card. Window fitter sealing a new window frame with silicone gun.",
+      "slug": "window-fitters"
+    },
+    {
+      "name": "Writing Services",
+      "prompt": "Photorealistic UK marketplace stock photo, natural daylight, sharp focus, no text, no logos, no watermarks, clean composition suitable for a service card. Professional writer typing an article on a laptop in a quiet study.",
+      "slug": "writing-services"
+    }
+  ]
+}

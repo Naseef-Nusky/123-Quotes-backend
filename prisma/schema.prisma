@@ -246,6 +246,8 @@ model Category {
   slug        String    @unique
   description String?
   icon        String?
+  /// Public image path or URL shown on category cards
+  imageUrl    String?
   sortOrder   Int       @default(0)
   isActive    Boolean   @default(true)
   createdAt   DateTime  @default(now())
@@ -261,6 +263,8 @@ model Service {
   slug            String   @unique
   description     String?
   shortDesc       String?
+  /// Public image path or URL shown on service cards
+  imageUrl        String?
   tokenCost       Int      @default(1)
   isActive        Boolean  @default(true)
   sortOrder       Int      @default(0)

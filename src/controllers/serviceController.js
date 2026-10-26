@@ -1,6 +1,67 @@
+const crypto = require('crypto')
+const fs = require('fs')
+const path = require('path')
 const prisma = require('../config/db')
 const { asyncHandler, ok, fail } = require('../utils/helpers')
 const { slugify } = require('../utils/crypto')
+const { UPLOAD_ROOT } = require('../services/attachmentService')
+
+const IMAGE_EXT = {
+  'image/jpeg': 'jpg',
+  'image/png': 'png',
+  'image/gif': 'gif',
+  'image/webp': 'webp',
+}
+
+function removeLocalImage(url, prefix, folder) {
+  if (!url || !String(url).startsWith(prefix)) return
+  // Never delete shared content-addressed files (may be referenced by others).
+  if (String(url).includes('/shared/')) return
+  const rel = String(url).replace(prefix, '')
+  const full = path.join(UPLOAD_ROOT, folder, rel)
+  try {
+    if (fs.existsSync(full)) fs.unlinkSync(full)
+  } catch {
+    /* ignore */
+  }
+}
+
+/**
+ * Store once by content hash under uploads/marketplace/shared/<hash>.<ext>.
+ * Same bytes → same URL (no duplicate files on disk).
+ */
+function storeSharedImage(buffer, ext) {
+  const hash = crypto.createHash('sha256').update(buffer).digest('hex').slice(0, 32)
+  const dir = path.join(UPLOAD_ROOT, 'marketplace', 'shared')
+  fs.mkdirSync(dir, { recursive: true })
+  const storedName = `${hash}.${ext}`
+  const full = path.join(dir, storedName)
+  if (!fs.existsSync(full)) {
+    fs.writeFileSync(full, buffer)
+  }
+  return `/api/marketplace-images/shared/${storedName}`
+}
+
+async function imageUrlAlreadyUsed(imageUrl, except) {
+  if (!imageUrl) return false
+  const [svc, cat] = await Promise.all([
+    prisma.service.findFirst({
+      where: {
+        imageUrl,
+        ...(except?.serviceId ? { id: { not: except.serviceId } } : {}),
+      },
+      select: { id: true },
+    }),
+    prisma.category.findFirst({
+      where: {
+        imageUrl,
+        ...(except?.categoryId ? { id: { not: except.categoryId } } : {}),
+      },
+      select: { id: true },
+    }),
+  ])
+  return Boolean(svc || cat)
+}
 
 const listCategories = asyncHandler(async (_req, res) => {
   const categories = await prisma.category.findMany({
@@ -78,7 +139,7 @@ const adminListServices = asyncHandler(async (_req, res) => {
 })
 
 const adminUpsertCategory = asyncHandler(async (req, res) => {
-  const { id, name, description, icon, sortOrder, isActive } = req.body
+  const { id, name, description, icon, imageUrl, sortOrder, isActive } = req.body
   if (!name) return fail(res, 'Name is required')
   const slug = slugify(name)
 
@@ -86,13 +147,31 @@ const adminUpsertCategory = asyncHandler(async (req, res) => {
     ? await prisma.category.findUnique({ where: { id }, select: { name: true } })
     : null
 
+  const data = {
+    name,
+    slug,
+    description,
+    icon,
+    sortOrder,
+    isActive,
+  }
+  if (imageUrl !== undefined) data.imageUrl = imageUrl || null
+
   const category = id
     ? await prisma.category.update({
         where: { id },
-        data: { name, slug, description, icon, sortOrder, isActive },
+        data,
       })
     : await prisma.category.create({
-        data: { name, slug, description, icon, sortOrder: sortOrder || 0, isActive: isActive !== false },
+        data: {
+          name,
+          slug,
+          description,
+          icon,
+          imageUrl: imageUrl || null,
+          sortOrder: sortOrder || 0,
+          isActive: isActive !== false,
+        },
       })
 
   // The public site mostly displays SERVICE names, and most categories have a
@@ -142,14 +221,27 @@ const adminUpsertCategory = asyncHandler(async (req, res) => {
 })
 
 const adminUpsertService = asyncHandler(async (req, res) => {
-  const { id, categoryId, name, description, shortDesc, tokenCost, sortOrder, isActive } = req.body
+  const { id, categoryId, name, description, shortDesc, imageUrl, tokenCost, sortOrder, isActive } =
+    req.body
   if (!categoryId || !name) return fail(res, 'categoryId and name are required')
   const slug = slugify(name)
+
+  const data = {
+    categoryId,
+    name,
+    slug,
+    description,
+    shortDesc,
+    tokenCost,
+    sortOrder,
+    isActive,
+  }
+  if (imageUrl !== undefined) data.imageUrl = imageUrl || null
 
   const service = id
     ? await prisma.service.update({
         where: { id },
-        data: { categoryId, name, slug, description, shortDesc, tokenCost, sortOrder, isActive },
+        data,
       })
     : await prisma.service.create({
         data: {
@@ -158,6 +250,7 @@ const adminUpsertService = asyncHandler(async (req, res) => {
           slug,
           description,
           shortDesc,
+          imageUrl: imageUrl || null,
           tokenCost: tokenCost || 1,
           sortOrder: sortOrder || 0,
           isActive: isActive !== false,
@@ -165,6 +258,72 @@ const adminUpsertService = asyncHandler(async (req, res) => {
       })
 
   return ok(res, { service }, id ? 200 : 201)
+})
+
+const adminUploadServiceImage = asyncHandler(async (req, res) => {
+  const service = await prisma.service.findUnique({ where: { id: req.params.id } })
+  if (!service) return fail(res, 'Service not found', 404)
+  if (!req.file?.buffer?.length) return fail(res, 'Image file is required')
+
+  const ext = IMAGE_EXT[req.file.mimetype]
+  if (!ext) return fail(res, 'Unsupported image type', 400)
+
+  const imageUrl = storeSharedImage(req.file.buffer, ext)
+
+  // Same file already set on this service — no DB write / no duplicate storage.
+  if (service.imageUrl === imageUrl) {
+    return ok(res, { service, imageUrl, deduped: true })
+  }
+
+  // Block assigning an image already used by another service/category.
+  if (await imageUrlAlreadyUsed(imageUrl, { serviceId: service.id })) {
+    return fail(
+      res,
+      'This image is already used by another service or category. Choose a different image.',
+      409,
+    )
+  }
+
+  removeLocalImage(service.imageUrl, '/api/service-images/', 'services')
+  removeLocalImage(service.imageUrl, '/api/marketplace-images/', 'marketplace')
+
+  const updated = await prisma.service.update({
+    where: { id: service.id },
+    data: { imageUrl },
+  })
+  return ok(res, { service: updated, imageUrl })
+})
+
+const adminUploadCategoryImage = asyncHandler(async (req, res) => {
+  const category = await prisma.category.findUnique({ where: { id: req.params.id } })
+  if (!category) return fail(res, 'Category not found', 404)
+  if (!req.file?.buffer?.length) return fail(res, 'Image file is required')
+
+  const ext = IMAGE_EXT[req.file.mimetype]
+  if (!ext) return fail(res, 'Unsupported image type', 400)
+
+  const imageUrl = storeSharedImage(req.file.buffer, ext)
+
+  if (category.imageUrl === imageUrl) {
+    return ok(res, { category, imageUrl, deduped: true })
+  }
+
+  if (await imageUrlAlreadyUsed(imageUrl, { categoryId: category.id })) {
+    return fail(
+      res,
+      'This image is already used by another service or category. Choose a different image.',
+      409,
+    )
+  }
+
+  removeLocalImage(category.imageUrl, '/api/category-images/', 'categories')
+  removeLocalImage(category.imageUrl, '/api/marketplace-images/', 'marketplace')
+
+  const updated = await prisma.category.update({
+    where: { id: category.id },
+    data: { imageUrl },
+  })
+  return ok(res, { category: updated, imageUrl })
 })
 
 const adminDeleteCategory = asyncHandler(async (req, res) => {
@@ -215,6 +374,8 @@ module.exports = {
   adminListServices,
   adminUpsertCategory,
   adminUpsertService,
+  adminUploadServiceImage,
+  adminUploadCategoryImage,
   adminDeleteCategory,
   adminDeleteService,
 }

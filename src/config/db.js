@@ -1,6 +1,17 @@
 const { PrismaClient } = require('@prisma/client')
 
-const prisma = new PrismaClient()
+// Cap pool size — DigitalOcean Postgres has limited connection slots.
+function databaseUrl() {
+  const base = process.env.DATABASE_URL || ''
+  if (!base) return base
+  if (/[?&]connection_limit=/.test(base)) return base
+  const sep = base.includes('?') ? '&' : '?'
+  return `${base}${sep}connection_limit=5&pool_timeout=30`
+}
+
+const prisma = new PrismaClient({
+  datasources: { db: { url: databaseUrl() } },
+})
 
 function maskDatabaseUrl(url = '') {
   return url.replace(/:[^:@/]+@/, ':****@')

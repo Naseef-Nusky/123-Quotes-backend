@@ -60,6 +60,26 @@ app.use(
   }),
 )
 
+// Service & category card images (legacy per-entity folders + shared content-hash store)
+app.use(
+  '/api/service-images',
+  express.static(path.join(__dirname, '../uploads/services'), {
+    maxAge: '7d',
+  }),
+)
+app.use(
+  '/api/category-images',
+  express.static(path.join(__dirname, '../uploads/categories'), {
+    maxAge: '7d',
+  }),
+)
+app.use(
+  '/api/marketplace-images',
+  express.static(path.join(__dirname, '../uploads/marketplace'), {
+    maxAge: '7d',
+  }),
+)
+
 // Accurate client IP behind reverse proxies (needed for auth rate limits)
 if (process.env.NODE_ENV === 'production' || process.env.TRUST_PROXY === '1') {
   app.set('trust proxy', 1)
