@@ -67,10 +67,13 @@ function link(hrefVar, label) {
 }
 
 function btn(hrefVar, label) {
+  // Solid brand primary + gradient overlay — matches site --color-primary / brand gradient
   return `<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:8px 0 22px;">
   <tr>
-    <td align="left" style="border-radius:8px;background:linear-gradient(180deg,${BRAND_BLUE_LIGHT} 0%,${BRAND_BLUE} 45%,${BRAND_NAVY} 100%);">
-      <a href="{{${hrefVar}}}" target="_blank" style="display:inline-block;padding:14px 28px;font-size:15px;font-weight:700;color:#ffffff;text-decoration:none;border-radius:8px;">${label}</a>
+    <td align="left" bgcolor="${BRAND_BLUE}" style="border-radius:8px;background-color:${BRAND_BLUE};background-image:linear-gradient(180deg,${BRAND_BLUE_LIGHT} 0%,${BRAND_BLUE} 45%,${BRAND_NAVY} 100%);">
+      <a href="{{${hrefVar}}}" target="_blank" style="display:inline-block;padding:14px 28px;font-size:15px;font-weight:700;line-height:1.2;color:#ffffff;text-decoration:none;border-radius:8px;background-color:${BRAND_BLUE};">
+        ${label}
+      </a>
     </td>
   </tr>
 </table>`

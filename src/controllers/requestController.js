@@ -160,11 +160,12 @@ async function finalizeRequest({
   let setPasswordUrl = loginUrl
   let accountHeading = 'Your 123Quotes Account'
   let accountBody =
-    'You can manage this request and any future requests from your dashboard. Click the button below to log in:'
+    'You can manage this request and any future requests from your dashboard. Click the button below to log in with a one-time link:'
   let ctaLabel = 'Log in to 123Quotes'
   let ctaUrl = loginUrl
 
   if (isNewAccount || needsPasswordSetup) {
+    // New / password-not-set accounts → set-password link (7 days)
     const setPasswordToken = randomToken()
     await prisma.user.update({
       where: { id: request.customer.userId },
@@ -175,7 +176,7 @@ async function finalizeRequest({
         status: 'ACTIVE',
       },
     })
-    setPasswordUrl = `${appUrl}/set-password?token=${setPasswordToken}`
+    setPasswordUrl = `${appUrl}/set-password?token=${encodeURIComponent(setPasswordToken)}`
     loginUrl = setPasswordUrl
     ctaUrl = setPasswordUrl
     if (isNewAccount) {
@@ -189,6 +190,25 @@ async function finalizeRequest({
         'You already have an account with us, but you have not set a password yet. Click the button below to set your password so you can log in and manage this request:'
       ctaLabel = 'Set your password'
     }
+  } else {
+    // Password already set → one-click magic login link (30 minutes)
+    const loginToken = `login_${randomToken()}`
+    await prisma.user.update({
+      where: { id: request.customer.userId },
+      data: {
+        resetToken: loginToken,
+        resetTokenExpiry: new Date(Date.now() + 1000 * 60 * 30),
+        emailVerified: true,
+        status: 'ACTIVE',
+      },
+    })
+    loginUrl = `${appUrl}/login?token=${encodeURIComponent(loginToken)}`
+    setPasswordUrl = loginUrl
+    ctaUrl = loginUrl
+    accountHeading = 'Your 123Quotes Account'
+    accountBody =
+      'You can manage this request and any future requests from your dashboard. Click the button below to log in instantly (this link expires in 30 minutes):'
+    ctaLabel = 'Log in to 123Quotes'
   }
 
   await sendEmail({
