@@ -172,6 +172,7 @@ const buyTokens = asyncHandler(async (req, res) => {
       user: req.user,
       packageId: req.body.packageId,
       sourceId: req.body.sourceId || null,
+      verificationToken: req.body.verificationToken || null,
     })
     return ok(res, result)
   } catch (err) {

@@ -46,7 +46,7 @@ function squareErrorMessage(err) {
   return err?.message || 'Square payment failed'
 }
 
-async function purchaseTokenPackage({ user, packageId, sourceId }) {
+async function purchaseTokenPackage({ user, packageId, sourceId, verificationToken }) {
   const tokenPackage = await prisma.tokenPackage.findUnique({ where: { id: packageId } })
   if (!tokenPackage || !tokenPackage.isActive) {
     throw new Error('Token package not found')
@@ -77,6 +77,8 @@ async function purchaseTokenPackage({ user, packageId, sourceId }) {
         locationId: process.env.SQUARE_LOCATION_ID,
         note: `Token package: ${tokenPackage.name}`,
         autocomplete: true,
+        // Required for UK/EU SCA (cards + Apple Pay / Google Pay via verifyBuyer)
+        ...(verificationToken ? { verificationToken } : {}),
       })
 
       const created = payment?.payment || payment
